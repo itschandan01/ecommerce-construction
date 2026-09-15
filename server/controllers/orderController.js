@@ -178,8 +178,12 @@
 // server/controllers/orderController.js
 // server/controllers/orderController.js
 
-// server/controllers/orderController.js
 import pool from "../config/db.js";
+import { findUserById } from "../models/userModel.js";
+import { sendOrderConfirmation } from "./emailController.js";
+
+// In-memory store for orders to maintain items & details across fallback flow
+export const ordersMap = new Map();
 
 export const placeOrder = async (req, res) => {
   try {
@@ -188,10 +192,17 @@ export const placeOrder = async (req, res) => {
     }
 
     const userId = req.user.id;
-    const { totalAmount, addressId, paymentMethod } = req.body;
+    const { totalAmount, addressId, paymentMethod, items } = req.body;
 
     if (!totalAmount || !addressId || !paymentMethod) {
       return res.status(400).json({ error: "Missing order data" });
+    }
+
+    // Fetch user details for email notification
+    let userEmail = req.user.email;
+    if (!userEmail) {
+      const user = await findUserById(userId);
+      userEmail = user?.email || process.env.EMAIL_USER;
     }
 
     let orderId;
@@ -216,6 +227,31 @@ export const placeOrder = async (req, res) => {
     } catch (dbErr) {
       console.warn("DB notice during order creation (using fallback):", dbErr.message);
       orderId = Date.now();
+    }
+
+    const orderData = {
+      id: orderId,
+      user_id: userId,
+      email: userEmail,
+      total_amount: totalAmount,
+      address_id: addressId,
+      payment_method: paymentMethod,
+      items: items || [],
+    };
+    ordersMap.set(String(orderId), orderData);
+
+    // Send order confirmation email immediately for Cash on Delivery (COD)
+    if (paymentMethod === "cod" && userEmail) {
+      try {
+        await sendOrderConfirmation({
+          order: { id: orderId, total_amount: totalAmount, email: userEmail },
+          items: items || [],
+          paymentMethod: "cod",
+        });
+        console.log(`📧 COD Order Confirmation email sent to ${userEmail} for Order #${orderId}`);
+      } catch (emailErr) {
+        console.error("📧 COD Order Confirmation email error:", emailErr.message);
+      }
     }
 
     return res.status(201).json({

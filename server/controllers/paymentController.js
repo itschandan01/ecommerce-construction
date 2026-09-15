@@ -1,8 +1,9 @@
-// server/controllers/paymentController.js
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import pool from "../config/db.js";
 import { sendOrderConfirmation } from "./emailController.js";
+import { ordersMap } from "./orderController.js";
+import { findUserById } from "../models/userModel.js";
 
 let razorpay = null;
 
@@ -81,6 +82,8 @@ export const verifyPayment = async (req, res) => {
       razorpay_order_id,
       razorpay_signature,
       orderId,
+      items,
+      totalAmount,
     } = req.body;
 
     if (
@@ -119,6 +122,31 @@ export const verifyPayment = async (req, res) => {
       );
     } catch (dbErr) {
       console.warn("DB notice during payment verify (using fallback):", dbErr.message);
+    }
+
+    // Send confirmation email for online Razorpay payment
+    const cachedOrder = ordersMap.get(String(orderId)) || {};
+    let userEmail = cachedOrder.email || req.user?.email;
+    if (!userEmail && req.user?.id) {
+      const user = await findUserById(req.user.id);
+      userEmail = user?.email || process.env.EMAIL_USER;
+    }
+
+    if (userEmail) {
+      try {
+        await sendOrderConfirmation({
+          order: {
+            id: orderId,
+            total_amount: totalAmount || cachedOrder.total_amount || 0,
+            email: userEmail,
+          },
+          items: items || cachedOrder.items || [],
+          paymentMethod: "razorpay",
+        });
+        console.log(`📧 Razorpay Order Confirmation email sent to ${userEmail} for Order #${orderId}`);
+      } catch (emailErr) {
+        console.error("📧 Razorpay Order Confirmation email error:", emailErr.message);
+      }
     }
 
     return res.json({ success: true });

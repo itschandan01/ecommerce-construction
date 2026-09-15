@@ -48,6 +48,7 @@ const CheckoutPayment = () => {
       {
         items: cartItems.map((item) => ({
           productId: item.id,
+          name: item.name,
           quantity: item.quantity,
           price: item.price,
         })),
@@ -66,15 +67,22 @@ const CheckoutPayment = () => {
   };
 
   const handleCOD = async () => {
+    const orderedItems = [...cartItems];
     const orderId = await createOrder("cod");
 
     clearCart();
     navigate("/order-confirmation", {
-      state: { orderId, paymentMethod: "cod", totalAmount: state.total },
+      state: {
+        orderId,
+        paymentMethod: "cod",
+        totalAmount: state.total,
+        items: orderedItems,
+      },
     });
   };
 
   const handleRazorpay = async () => {
+    const orderedItems = [...cartItems];
     const orderId = await createOrder("razorpay");
 
     const rpOrder = await api.post(
@@ -108,6 +116,13 @@ const CheckoutPayment = () => {
             razorpay_order_id: response.razorpay_order_id,
             razorpay_signature: response.razorpay_signature,
             orderId,
+            items: orderedItems.map((item) => ({
+              productId: item.id,
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+            totalAmount: Number(state.total),
           },
           {
             headers: {
@@ -122,6 +137,7 @@ const CheckoutPayment = () => {
             orderId,
             paymentMethod: "razorpay",
             totalAmount: state.total,
+            items: orderedItems,
           },
         });
       },
