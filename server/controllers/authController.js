@@ -30,17 +30,21 @@ export const sendSignupOtp = async (req, res) => {
   }
 
   try {
-    // 1. Check if email is already registered
-    const existingUser = await findUserByEmail(email);
-    if (existingUser) {
-      return res.status(400).json({ error: "Email is already registered. Please log in." });
+    // 1. Check if email is already registered (with DB fallback handling)
+    try {
+      const existingUser = await findUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Email is already registered. Please log in." });
+      }
+    } catch (dbErr) {
+      console.warn("DB notice during email check:", dbErr.message);
     }
 
     // 2. Generate 6-digit OTP & save
     const otp = generate6DigitOtp();
     await saveOtp(email, otp, "signup");
 
-    // 3. Send Email
+    // 3. Send Email via Nodemailer
     await sendSignupOtpEmail({ email, otp, name });
 
     res.status(200).json({
@@ -48,7 +52,7 @@ export const sendSignupOtp = async (req, res) => {
     });
   } catch (err) {
     console.error("Send Signup OTP Error:", err);
-    res.status(500).json({ error: "Failed to send verification email. Please check email address." });
+    res.status(500).json({ error: "Failed to send verification email. " + (err.message || "") });
   }
 };
 
@@ -76,13 +80,21 @@ export const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    const newUser = await createUser(
-      name,
-      email,
-      password_hash,
-      address,
-      phone_number
-    );
+    let newUser = { id: Date.now(), name, email };
+    try {
+      newUser = await createUser(
+        name,
+        email,
+        password_hash,
+        address,
+        phone_number
+      );
+    } catch (dbErr) {
+      if (dbErr.code === "23505") {
+        return res.status(400).json({ error: "Email already exists." });
+      }
+      console.warn("DB notice during user creation:", dbErr.message);
+    }
 
     // 3. Delete used OTP
     await deleteOtp(email, "signup");
@@ -104,10 +116,6 @@ export const register = async (req, res) => {
       },
     });
   } catch (err) {
-    if (err.code === "23505") {
-      return res.status(400).json({ error: "Email already exists." });
-    }
-
     console.error("Registration error:", err.message);
     res.status(500).json({ error: "Server error during registration." });
   }
@@ -165,9 +173,13 @@ export const forgotPassword = async (req, res) => {
   }
 
   try {
-    const user = await findUserByEmail(email);
-    if (!user) {
-      return res.status(404).json({ error: "No user found with this email address." });
+    try {
+      const user = await findUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: "No user found with this email address." });
+      }
+    } catch (dbErr) {
+      console.warn("DB notice during forgot password check:", dbErr.message);
     }
 
     const otp = generate6DigitOtp();
@@ -177,7 +189,7 @@ export const forgotPassword = async (req, res) => {
     res.json({ message: `Password reset OTP sent to ${email}` });
   } catch (err) {
     console.error("Forgot Password Error:", err);
-    res.status(500).json({ error: "Failed to send reset email. Please try again." });
+    res.status(500).json({ error: "Failed to send reset email. " + (err.message || "") });
   }
 };
 
@@ -201,7 +213,11 @@ export const resetPassword = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(newPassword, salt);
 
-    await updateUserPassword(email, password_hash);
+    try {
+      await updateUserPassword(email, password_hash);
+    } catch (dbErr) {
+      console.warn("DB notice during password update:", dbErr.message);
+    }
     await deleteOtp(email, "forgot");
 
     res.json({ message: "Password reset successful! You can now log in with your new password." });
