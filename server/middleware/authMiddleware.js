@@ -123,8 +123,12 @@ export const protect = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ VERY IMPORTANT
-    req.user = { id: decoded.id };
+    // ✅ Attach user identity attributes
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      name: decoded.name,
+    };
 
     next();
   } catch (err) {

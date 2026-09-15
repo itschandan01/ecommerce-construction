@@ -126,7 +126,7 @@ export const verifyPayment = async (req, res) => {
 
     // Send confirmation email for online Razorpay payment
     const cachedOrder = ordersMap.get(String(orderId)) || {};
-    let userEmail = cachedOrder.email || req.user?.email;
+    let userEmail = req.body.userEmail || cachedOrder.email || req.user?.email;
     if (!userEmail && req.user?.id) {
       const user = await findUserById(req.user.id);
       userEmail = user?.email || process.env.EMAIL_USER;

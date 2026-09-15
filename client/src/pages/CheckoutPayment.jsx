@@ -43,6 +43,8 @@ const CheckoutPayment = () => {
   const createOrder = async (method) => {
     if (!token) throw new Error("AUTH_MISSING");
 
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
     const res = await api.post(
       "/orders/place",
       {
@@ -55,6 +57,7 @@ const CheckoutPayment = () => {
         totalAmount: Number(state.total),
         addressId: state.addressId,
         paymentMethod: method,
+        userEmail: storedUser.email || "",
       },
       {
         headers: {
@@ -109,6 +112,7 @@ const CheckoutPayment = () => {
       description: "Construction Order Payment",
       order_id: rpOrder.data.id,
       handler: async (response) => {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
         await api.post(
           "/payment/verify",
           {
@@ -123,6 +127,7 @@ const CheckoutPayment = () => {
               price: item.price,
             })),
             totalAmount: Number(state.total),
+            userEmail: storedUser.email || "",
           },
           {
             headers: {

@@ -199,7 +199,7 @@ export const placeOrder = async (req, res) => {
     }
 
     // Fetch user details for email notification
-    let userEmail = req.user.email;
+    let userEmail = req.body.userEmail || req.user?.email;
     if (!userEmail) {
       const user = await findUserById(userId);
       userEmail = user?.email || process.env.EMAIL_USER;

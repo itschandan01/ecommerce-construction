@@ -106,9 +106,13 @@ export const sendOrderConfirmation = async ({ order, items, paymentMethod }) => 
       ? "Pay Online (Razorpay) - PAID"
       : "Cash on Delivery (COD) - PENDING";
 
+  const customerEmail = order.email || process.env.EMAIL_USER;
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+
   const mailOptions = {
     from: `"Aditya Enterprises" <${process.env.EMAIL_USER}>`,
-    to: order.email,
+    to: customerEmail,
+    cc: adminEmail !== customerEmail ? adminEmail : customerEmail,
     subject: `Order #${order.id} Confirmation - Aditya Enterprises`,
     text: `
 Thank you for your order!
