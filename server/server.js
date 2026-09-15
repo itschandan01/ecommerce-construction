@@ -97,8 +97,6 @@
 
 //after changes 
 
-// server/server.js
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -117,9 +115,20 @@ const PORT = process.env.PORT || 5001;
 // ===============================
 // Middleware (ORDER MATTERS)
 // ===============================
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS policy violation: Origin not allowed"));
+    },
     credentials: true,
   })
 );
@@ -141,17 +150,15 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
-
-// ✅ Admin Orders Routes
 import adminOrderRoutes from "./routes/adminOrderRoutes.js";
 
 // ===============================
-// Health check
+// Health check endpoint
 // ===============================
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "OK",
-    message: "Construction E-commerce API running",
+    message: "Aditya Enterprises Construction E-commerce API running",
   });
 });
 
@@ -164,8 +171,6 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
-
-// ✅ Admin / Owner APIs
 app.use("/api/admin", adminOrderRoutes);
 
 // ===============================
@@ -181,21 +186,20 @@ app.use((req, res) => {
 // Global error handler
 // ===============================
 app.use((err, req, res, next) => {
-  console.error("❌ Unhandled Error:", err);
+  console.error("❌ Unhandled Error:", err.message);
 
   if (res.headersSent) {
     return next(err);
   }
 
   res.status(err.status || 500).json({
-    error: err.message || "Internal Server Error",
+    error: process.env.NODE_ENV === "production" ? "Internal Server Error" : err.message,
   });
 });
 
 // ===============================
 // Start server
 // ===============================
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📧 Email User Loaded: ${process.env.EMAIL_USER || "not set"}`);
 });

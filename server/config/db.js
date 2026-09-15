@@ -14,7 +14,7 @@ const poolConfig = process.env.DATABASE_URL
       user: process.env.DB_USER || "postgres",
       host: process.env.DB_HOST || "localhost",
       database: process.env.DB_DATABASE || "construction_ecommerce",
-      password: process.env.DB_PASSWORD || "123",
+      password: process.env.DB_PASSWORD,
       port: Number(process.env.DB_PORT) || 5432,
     };
 

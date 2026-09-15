@@ -121,6 +121,10 @@ export const protect = (req, res, next) => {
       return res.status(401).json({ error: "Token missing" });
     }
 
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ error: "Server configuration error: JWT secret is missing." });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // ✅ Attach user identity attributes

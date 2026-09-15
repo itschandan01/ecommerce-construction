@@ -3,19 +3,22 @@ import bcrypt from "bcryptjs";
 
 const memoryUsers = new Map();
 
-// Pre-seed default Admin user
-const ADMIN_EMAIL = "adityaenterprisesofficial62@gmail.com";
-const adminPasswordHash = bcrypt.hashSync("Admin@123", 10);
+// Admin account configuration (Loaded strictly from environment variables)
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "adityaenterprisesofficial62@gmail.com").toLowerCase().trim();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
-memoryUsers.set(ADMIN_EMAIL, {
-  id: 1,
-  name: "Aditya Enterprises",
-  email: ADMIN_EMAIL,
-  password_hash: adminPasswordHash,
-  address: "Aditya Enterprises HQ",
-  phone_number: "6203829149",
-  role: "admin",
-});
+if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+  const adminPasswordHash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
+  memoryUsers.set(ADMIN_EMAIL, {
+    id: 1,
+    name: "Aditya Enterprises",
+    email: ADMIN_EMAIL,
+    password_hash: adminPasswordHash,
+    address: "Aditya Enterprises HQ",
+    phone_number: "6203829149",
+    role: "admin",
+  });
+}
 
 /**
  * Inserts a new user into the database.

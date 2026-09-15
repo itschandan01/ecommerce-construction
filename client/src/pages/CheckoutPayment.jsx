@@ -101,8 +101,10 @@ const CheckoutPayment = () => {
     const loaded = await loadRazorpayScript();
     if (!loaded) throw new Error("RAZORPAY_LOAD_FAILED");
 
-    const razorpayKey =
-      import.meta.env.VITE_RAZORPAY_KEY || "rzp_live_Rv9c4yrAbQyS5c";
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY;
+    if (!razorpayKey) {
+      throw new Error("Razorpay Key ID (VITE_RAZORPAY_KEY) is not configured.");
+    }
 
     new window.Razorpay({
       key: razorpayKey,

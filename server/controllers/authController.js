@@ -100,9 +100,14 @@ export const register = async (req, res) => {
     await deleteOtp(email, "signup");
 
     // 4. Generate JWT
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET environment variable is missing.");
+    }
+
     const token = jwt.sign(
       { id: newUser.id, email: newUser.email, name: newUser.name },
-      process.env.JWT_SECRET || "YOUR_VERY_STRONG_SECRET_KEY",
+      jwtSecret,
       { expiresIn: "7d" }
     );
 
@@ -140,9 +145,14 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: "Invalid credentials." });
     }
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET environment variable is missing.");
+    }
+
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name },
-      process.env.JWT_SECRET || "YOUR_VERY_STRONG_SECRET_KEY",
+      jwtSecret,
       { expiresIn: "7d" }
     );
 
