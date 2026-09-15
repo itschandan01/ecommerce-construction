@@ -114,6 +114,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import HomePage from "./pages/Homepage";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Cart from "./pages/Cart";
 import CheckoutAddress from "./pages/CheckoutAddress";
 import CheckoutPayment from "./pages/CheckoutPayment";
@@ -137,6 +138,7 @@ const App = () => {
             <Route path="/" element={<HomePage />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
             {/* ---------- Cart ---------- */}
             <Route path="/cart" element={<Cart />} />

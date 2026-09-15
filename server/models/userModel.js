@@ -42,3 +42,14 @@ export const findUserById = async (userId) => {
   );
   return result.rows[0];
 };
+
+/**
+ * Updates a user's password hash.
+ */
+export const updateUserPassword = async (email, passwordHash) => {
+  const result = await pool.query(
+    "UPDATE users SET password_hash = $1 WHERE email = $2 RETURNING id, name, email",
+    [passwordHash, email]
+  );
+  return result.rows[0];
+};
