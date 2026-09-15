@@ -90,8 +90,8 @@ const CheckoutPayment = () => {
     const loaded = await loadRazorpayScript();
     if (!loaded) throw new Error("RAZORPAY_LOAD_FAILED");
 
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY;
-    if (!razorpayKey) throw new Error("RAZORPAY_KEY_MISSING");
+    const razorpayKey =
+      import.meta.env.VITE_RAZORPAY_KEY || "rzp_live_Rv9c4yrAbQyS5c";
 
     new window.Razorpay({
       key: razorpayKey,
@@ -145,7 +145,12 @@ const CheckoutPayment = () => {
         localStorage.clear();
         navigate("/login");
       } else {
-        alert("Payment failed. Please try again.");
+        const errorMsg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err.message ||
+          "Payment failed. Please try again.";
+        alert(`Payment error: ${errorMsg}`);
       }
     } finally {
       setLoading(false);
