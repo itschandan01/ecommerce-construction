@@ -1,61 +1,13 @@
-// import axios from "axios";
-
-// const api = axios.create({
-//   baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
-//   headers: {
-//     "Content-Type": "application/json",
-//   },
-// });
-
-// export default api;
-
-
-// import axios from "axios";
-
-// const api = axios.create({
-//   baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
-//   headers: {
-//     "Content-Type": "application/json",
-//   },
-// });
-
-// // 🔐 Attach token automatically
-// api.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("token"); // or whatever key you use
-
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-
-//   return config;
-// });
-
-// export default api;
-
-// import axios from "axios";
-
-// const api = axios.create({
-//   baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
-//   headers: {
-//     "Content-Type": "application/json",
-//   },
-// });
-
-// // 🔥 ADD THIS INTERCEPTOR
-// api.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("token"); // SAME key as AuthContext
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
-
-// export default api;
-
 import axios from "axios";
 
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!envUrl) return "http://localhost:5001/api";
+  return envUrl.endsWith("/api") ? envUrl : `${envUrl}/api`;
+};
+
 const api = axios.create({
-  baseURL: "https://final-eccommerce.onrender.com/api",
+  baseURL: getBaseUrl(),
 });
 
 // 🔐 Attach token to EVERY request
@@ -76,13 +28,11 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.warn("Unauthorized – logging out");
-      localStorage.clear();
-      window.location.href = "/login";
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     }
     return Promise.reject(error);
   }
 );
 
 export default api;
-
-
