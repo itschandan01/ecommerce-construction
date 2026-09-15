@@ -44,7 +44,7 @@ export const sendSignupOtp = async (req, res) => {
     const otp = generate6DigitOtp();
     await saveOtp(email, otp, "signup");
 
-    // 3. Send Email via Nodemailer
+    // 3. Send Email via Brevo API
     await sendSignupOtpEmail({ email, otp, name });
 
     res.status(200).json({
