@@ -180,6 +180,7 @@
 
 import pool from "../config/db.js";
 import { findUserById } from "../models/userModel.js";
+import { decreaseProductStock } from "../models/productModel.js";
 import { sendOrderConfirmation } from "./emailController.js";
 
 // In-memory store for orders to maintain items & details across fallback flow
@@ -239,6 +240,21 @@ export const placeOrder = async (req, res) => {
       items: items || [],
     };
     ordersMap.set(String(orderId), orderData);
+
+    // 📦 Decrease stock quantity for each ordered item
+    if (items && Array.isArray(items)) {
+      for (const item of items) {
+        const productId = item.productId || item.id;
+        const qty = Number(item.quantity) || 1;
+        if (productId) {
+          try {
+            await decreaseProductStock(productId, qty);
+          } catch (stockErr) {
+            console.warn(`Stock reduction notice for product #${productId}:`, stockErr.message);
+          }
+        }
+      }
+    }
 
     // Send order confirmation email immediately for Cash on Delivery (COD)
     if (paymentMethod === "cod" && userEmail) {

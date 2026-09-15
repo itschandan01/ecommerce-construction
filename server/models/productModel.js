@@ -183,3 +183,31 @@ export const deleteProduct = async (id) => {
     console.warn("DB notice (deleteProduct):", err.message);
   }
 };
+
+/**
+ * Decreases stock quantity for a product when an order is placed.
+ */
+export const decreaseProductStock = async (productId, quantityOrdered) => {
+  const numQty = Number(quantityOrdered) || 0;
+  if (numQty <= 0) return;
+
+  // 1. Decrease in memoryProducts (for local fallback)
+  const product = memoryProducts.find((p) => p.id === Number(productId));
+  if (product) {
+    product.stock_quantity = Math.max(0, Number(product.stock_quantity || 0) - numQty);
+    console.log(`📦 Stock updated in memory for product #${productId} (${product.name}): New stock = ${product.stock_quantity}`);
+  }
+
+  // 2. Decrease in PostgreSQL database
+  try {
+    await pool.query(
+      `UPDATE products 
+       SET stock_quantity = GREATEST(0, stock_quantity - $1)
+       WHERE id = $2`,
+      [numQty, productId]
+    );
+    console.log(`📦 Stock updated in DB for product #${productId}: -${numQty}`);
+  } catch (err) {
+    console.warn(`DB notice (decreaseProductStock for #${productId}):`, err.message);
+  }
+};
