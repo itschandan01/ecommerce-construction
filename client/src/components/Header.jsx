@@ -96,9 +96,12 @@ const Header = () => {
 
     const cartItemCount = getItemCount(); 
 
-    // 3. Frontend Owner Check
-    const OWNER_ID = 1; // Ensure this matches your backend owner ID
-    const isOwner = user && user.id === OWNER_ID; 
+    // 3. Frontend Admin Check
+    const ADMIN_EMAIL = "adityaenterprisesofficial62@gmail.com";
+    const isAdmin =
+      user &&
+      user.email &&
+      user.email.toLowerCase().trim() === ADMIN_EMAIL;
 
     return (
         <header className="header">
@@ -114,9 +117,9 @@ const Header = () => {
 
                 <Link to="/">Home</Link>
                 
-                {/* Owner-only links */}
-                {isOwner && <Link to="/add-product">Add Product</Link>}
-                {isOwner && <Link to="/admin/orders">View Orders</Link>}
+                {/* Admin-only links */}
+                {isAdmin && <Link to="/add-product">Add Product</Link>}
+                {isAdmin && <Link to="/admin/orders">View Orders</Link>}
                 
                 <Link to="/cart">🛒 Cart ({cartItemCount})</Link> 
                 

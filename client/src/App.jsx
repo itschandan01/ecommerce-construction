@@ -175,7 +175,7 @@ const App = () => {
             <Route
               path="/add-product"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute adminOnly={true}>
                   <AddProduct />
                 </ProtectedRoute>
               }
@@ -184,7 +184,7 @@ const App = () => {
             <Route
               path="/inventory"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute adminOnly={true}>
                   <InventoryManager />
                 </ProtectedRoute>
               }
@@ -194,7 +194,7 @@ const App = () => {
             <Route
               path="/admin/orders"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute adminOnly={true}>
                   <AdminOrders />
                 </ProtectedRoute>
               }

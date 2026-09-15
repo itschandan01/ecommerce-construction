@@ -2,7 +2,9 @@ import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const ProtectedRoute = ({ children }) => {
+const ADMIN_EMAIL = "adityaenterprisesofficial62@gmail.com";
+
+const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -18,6 +20,13 @@ const ProtectedRoute = ({ children }) => {
         state={{ from: location.pathname }}
       />
     );
+  }
+
+  if (adminOnly) {
+    const userEmail = (user?.email || "").toLowerCase().trim();
+    if (userEmail !== ADMIN_EMAIL) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;
