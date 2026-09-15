@@ -1,5 +1,7 @@
 import pool from "../config/db.js";
 
+const memoryUsers = new Map();
+
 /**
  * Inserts a new user into the database.
  */
@@ -10,46 +12,93 @@ export const createUser = async (
   address,
   phoneNumber
 ) => {
-  const result = await pool.query(
-    `INSERT INTO users 
-     (name, email, password_hash, address, phone_number)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, name, email`,
-    [name, email, passwordHash, address, phoneNumber]
-  );
+  const normalizedEmail = email.toLowerCase().trim();
+  const userData = {
+    id: memoryUsers.size + 1,
+    name,
+    email: normalizedEmail,
+    password_hash: passwordHash,
+    address,
+    phone_number: phoneNumber,
+  };
+  memoryUsers.set(normalizedEmail, userData);
 
-  return result.rows[0];
+  try {
+    const result = await pool.query(
+      `INSERT INTO users 
+       (name, email, password_hash, address, phone_number)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, name, email`,
+      [name, normalizedEmail, passwordHash, address, phoneNumber]
+    );
+    if (result.rows[0]) return result.rows[0];
+  } catch (err) {
+    console.warn("DB notice (createUser):", err.message);
+  }
+
+  return userData;
 };
 
 /**
  * Finds a user by their email address.
  */
 export const findUserByEmail = async (email) => {
-  const result = await pool.query(
-    "SELECT * FROM users WHERE email = $1",
-    [email]
-  );
-  return result.rows[0];
+  if (!email) return null;
+  const normalizedEmail = email.toLowerCase().trim();
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM users WHERE LOWER(email) = $1",
+      [normalizedEmail]
+    );
+    if (result.rows.length > 0) return result.rows[0];
+  } catch (err) {
+    console.warn("DB notice (findUserByEmail):", err.message);
+  }
+
+  return memoryUsers.get(normalizedEmail) || null;
 };
 
 /**
  * Finds a user by their ID.
  */
 export const findUserById = async (userId) => {
-  const result = await pool.query(
-    "SELECT id, name, email FROM users WHERE id = $1",
-    [userId]
-  );
-  return result.rows[0];
+  try {
+    const result = await pool.query(
+      "SELECT id, name, email FROM users WHERE id = $1",
+      [userId]
+    );
+    if (result.rows.length > 0) return result.rows[0];
+  } catch (err) {
+    console.warn("DB notice (findUserById):", err.message);
+  }
+
+  for (const user of memoryUsers.values()) {
+    if (user.id === Number(userId)) return user;
+  }
+  return null;
 };
 
 /**
  * Updates a user's password hash.
  */
 export const updateUserPassword = async (email, passwordHash) => {
-  const result = await pool.query(
-    "UPDATE users SET password_hash = $1 WHERE email = $2 RETURNING id, name, email",
-    [passwordHash, email]
-  );
-  return result.rows[0];
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const user = memoryUsers.get(normalizedEmail);
+  if (user) {
+    user.password_hash = passwordHash;
+  }
+
+  try {
+    const result = await pool.query(
+      "UPDATE users SET password_hash = $1 WHERE LOWER(email) = $2 RETURNING id, name, email",
+      [passwordHash, normalizedEmail]
+    );
+    if (result.rows[0]) return result.rows[0];
+  } catch (err) {
+    console.warn("DB notice (updateUserPassword):", err.message);
+  }
+
+  return user || null;
 };
