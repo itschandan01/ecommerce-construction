@@ -38,6 +38,12 @@ export default function CheckoutAddress() {
         }
       }
 
+      const PHONE_REGEX = /^[0-9]{10}$/;
+      if (!PHONE_REGEX.test(String(form.phone).trim())) {
+        alert("Mobile number must be exactly 10 digits.");
+        return;
+      }
+
       setLoading(true);
 
       const res = await api.post("/addresses", form, {
@@ -51,6 +57,9 @@ export default function CheckoutAddress() {
       navigate("/checkout/payment", {
         state: {
           addressId: res.data.id,
+          address: res.data,
+          subtotal: state?.subtotal,
+          shipping: state?.shipping,
           total: state?.total,
         },
       });
@@ -102,10 +111,13 @@ export default function CheckoutAddress() {
               }
             />
             <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
               placeholder="Phone Number (10 digits)"
               value={form.phone}
               onChange={(e) =>
-                setForm({ ...form, phone: e.target.value })
+                setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })
               }
             />
             <textarea

@@ -13,6 +13,28 @@ const Cart = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
+    // Section 10: Logged-out user route protection
+    if (!user) {
+        return (
+            <>
+                <Header />
+                <div className="cart-container">
+                    <div className="empty-cart-box" style={{ maxWidth: '520px', margin: '4rem auto', padding: '3rem 2rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔒</div>
+                        <h2 style={{ fontSize: '1.6rem', color: 'var(--color-text-main)', marginBottom: '0.5rem', fontWeight: '800' }}>Login Required</h2>
+                        <p className="empty-cart" style={{ marginBottom: '1.8rem', color: 'var(--color-text-muted)', lineHeight: '1.6' }}>
+                            Please login to your account to view your cart and proceed with checkout.
+                        </p>
+                        <button className="shop-now-btn" onClick={() => navigate('/login')} style={{ width: '100%', padding: '14px', fontSize: '1rem', fontWeight: '700' }}>
+                            Login to Account
+                        </button>
+                    </div>
+                </div>
+                <Footer />
+            </>
+        );
+    }
+
     // Calculate totals based on Business Rule: Subtotal >= ₹1,000 -> Free Shipping
     const subtotal = parseFloat(getTotal()) || 0; 
     const isFreeShipping = subtotal >= 1000;
@@ -20,12 +42,6 @@ const Cart = () => {
     const finalTotal = (subtotal + shipping).toFixed(2);
 
     const handleCheckout = () => {
-        if (!user) {
-            // Redirect to login if not authenticated
-            navigate('/login');
-            return;
-        }
-
         // Move to the next step in the funnel
         navigate('/checkout/address', {
             state: {
@@ -36,7 +52,7 @@ const Cart = () => {
         });
     };
 
-    // Render empty cart state
+    // Render empty cart state for logged-in user
     if (cartItems.length === 0) {
         return (
             <>
@@ -103,12 +119,6 @@ const Cart = () => {
                             <span className="total-amount">₹{finalTotal}</span>
                         </div>
 
-                        {!user && (
-                            <p className="login-prompt">
-                                🔒 Log in to continue to delivery address & checkout.
-                            </p>
-                        )}
-                        
                         <button 
                             className="checkout-button"
                             onClick={handleCheckout}

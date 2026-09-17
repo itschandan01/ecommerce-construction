@@ -46,6 +46,11 @@ export const addAddress = async (req, res) => {
   const { full_name, phone, address_line, city, state, pincode, street_address } = req.body;
   const userId = req.user?.id || 1;
 
+  const PHONE_REGEX = /^[0-9]{10}$/;
+  if (phone && !PHONE_REGEX.test(String(phone).trim())) {
+    return res.status(400).json({ error: "Mobile number must be exactly 10 digits." });
+  }
+
   const addressLineText = address_line || street_address || `${city || ''}, ${state || ''}`;
 
   const newAddress = {

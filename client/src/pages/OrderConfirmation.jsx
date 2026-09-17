@@ -1,10 +1,35 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+const safeFormatDate = (rawDate) => {
+  if (!rawDate) {
+    return new Date().toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Kolkata",
+    });
+  }
+  const d = new Date(rawDate);
+  if (isNaN(d.getTime())) {
+    return new Date().toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Kolkata",
+    });
+  }
+  return d.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Kolkata",
+  });
+};
+
 export default function OrderConfirmation() {
   const { state } = useLocation();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   if (!state) {
@@ -12,10 +37,13 @@ export default function OrderConfirmation() {
       <>
         <Header />
         <div className="page-container">
-          <div className="checkout-card" style={{ textAlign: "center" }}>
+          <div className="checkout-card" style={{ textAlign: "center", padding: "3rem 2rem" }}>
             <h2>No active order session found.</h2>
-            <button className="checkout-button" onClick={() => navigate("/")} style={{ marginTop: "1rem" }}>
-              Back to Home
+            <p style={{ color: "var(--color-text-muted)", marginTop: "0.5rem" }}>
+              Explore our catalog to place a new construction material order.
+            </p>
+            <button className="checkout-button" onClick={() => navigate("/")} style={{ marginTop: "1.5rem" }}>
+              Explore Marketplace
             </button>
           </div>
         </div>
@@ -24,8 +52,37 @@ export default function OrderConfirmation() {
     );
   }
 
-  const { orderId, paymentMethod, totalAmount, items = [] } = state;
+  const {
+    orderId,
+    paymentMethod,
+    totalAmount,
+    subtotal: stateSubtotal,
+    shipping: stateShipping,
+    items = [],
+    address,
+    created_at,
+  } = state;
+
   const isOnline = paymentMethod === "razorpay";
+  const orderDateStr = safeFormatDate(created_at);
+
+  const customerName = address?.full_name || user?.name || "Customer";
+  const customerPhone = address?.phone || user?.phone || "N/A";
+  const customerEmail = user?.email || "Email on file";
+
+  const addressLineText = address
+    ? [address.address_line || address.street_address, address.city, address.state, address.pincode ? `Pincode: ${address.pincode}` : null].filter(Boolean).join(", ")
+    : "Delivery site on file";
+
+  // Calculate items subtotal and shipping
+  const calculatedSubtotal = items.reduce(
+    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
+    0
+  );
+  const subtotal = stateSubtotal !== undefined ? Number(stateSubtotal) : calculatedSubtotal;
+  const isFreeShipping = subtotal >= 1000;
+  const shipping = stateShipping !== undefined ? Number(stateShipping) : (isFreeShipping ? 0 : 50);
+  const finalTotal = totalAmount !== undefined ? Number(totalAmount) : (subtotal + shipping);
 
   return (
     <>
@@ -48,160 +105,159 @@ export default function OrderConfirmation() {
           </div>
         </div>
 
-        <div
-          className="checkout-card order-success-card"
-          style={{
-            maxWidth: "720px",
-            margin: "0 auto",
-          }}
-        >
-          <div style={{ textAlign: "center", marginBottom: "24px" }}>
-            <span style={{ fontSize: "52px" }}>🎉</span>
-            <h2 style={{ color: "var(--color-success)", fontSize: "28px", marginTop: "10px" }}>
-              Order Placed Successfully!
+        <div className="order-receipt-wrapper" style={{ maxWidth: "800px", margin: "0 auto" }}>
+          {/* Top Banner */}
+          <div style={{ textAlign: "center", marginBottom: "28px", background: "var(--color-bg-card)", border: "1px solid var(--color-slate-border)", borderRadius: "var(--radius-lg)", padding: "28px" }}>
+            <div style={{ fontSize: "52px", lineHeight: "1" }}>🎉</div>
+            <h2 style={{ color: "var(--color-success)", fontSize: "28px", marginTop: "12px", fontWeight: "800" }}>
+              ✓ Order Successfully Placed
             </h2>
-            <div
-              style={{
-                display: "inline-block",
-                background: "rgba(16, 185, 129, 0.15)",
-                color: "var(--color-success)",
-                padding: "8px 16px",
-                borderRadius: "20px",
-                fontSize: "14px",
-                fontWeight: "600",
-                marginTop: "10px",
-                border: "1px solid rgba(16, 185, 129, 0.3)",
-              }}
-            >
-              📧 A confirmation email with order details has been sent to your registered email!
+            <p style={{ color: "var(--color-text-muted)", marginTop: "6px", fontSize: "0.95rem" }}>
+              Thank you for ordering with <strong>Aditya Enterprises</strong>. A receipt email has been dispatched.
+            </p>
+          </div>
+
+          {/* Section 1: ORDER INFORMATION */}
+          <div className="receipt-section-card" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-slate-border)", borderRadius: "var(--radius-lg)", padding: "24px", marginBottom: "20px" }}>
+            <h3 style={{ fontSize: "1.1rem", color: "var(--color-orange-primary)", borderBottom: "2px solid var(--color-orange-primary)", paddingBottom: "8px", marginBottom: "16px", fontWeight: "700" }}>
+              📋 Order Information
+            </h3>
+            <table className="receipt-info-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.95rem" }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)", width: "40%" }}><strong>Order ID:</strong></td>
+                  <td style={{ padding: "8px 0", fontWeight: "700", color: "var(--color-text-main)" }}>#{orderId}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)" }}><strong>Order Date:</strong></td>
+                  <td style={{ padding: "8px 0", fontWeight: "600", color: "var(--color-text-main)" }}>{orderDateStr}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)" }}><strong>Payment Method:</strong></td>
+                  <td style={{ padding: "8px 0", fontWeight: "700", color: isOnline ? "var(--color-orange-primary)" : "var(--color-warning)" }}>
+                    {isOnline ? "Pay Online (Razorpay) - PAID" : "Cash on Delivery (COD) - PENDING"}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)" }}><strong>Order Status:</strong></td>
+                  <td style={{ padding: "8px 0" }}>
+                    <span style={{ background: "#d1fae5", color: "#065f46", padding: "4px 12px", borderRadius: "12px", fontWeight: "700", fontSize: "0.85rem" }}>
+                      CONFIRMED
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Section 2: CUSTOMER INFORMATION */}
+          <div className="receipt-section-card" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-slate-border)", borderRadius: "var(--radius-lg)", padding: "24px", marginBottom: "20px" }}>
+            <h3 style={{ fontSize: "1.1rem", color: "var(--color-orange-primary)", borderBottom: "2px solid var(--color-orange-primary)", paddingBottom: "8px", marginBottom: "16px", fontWeight: "700" }}>
+              👤 Customer Information
+            </h3>
+            <table className="receipt-info-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.95rem" }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)", width: "40%" }}><strong>Customer Name:</strong></td>
+                  <td style={{ padding: "8px 0", fontWeight: "600", color: "var(--color-text-main)" }}>{customerName}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)" }}><strong>Phone Number:</strong></td>
+                  <td style={{ padding: "8px 0", fontWeight: "600", color: "var(--color-text-main)" }}>{customerPhone}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)" }}><strong>Email Address:</strong></td>
+                  <td style={{ padding: "8px 0", fontWeight: "600", color: "var(--color-text-main)" }}>{customerEmail}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Section 3: DELIVERY INFORMATION */}
+          <div className="receipt-section-card" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-slate-border)", borderRadius: "var(--radius-lg)", padding: "24px", marginBottom: "20px" }}>
+            <h3 style={{ fontSize: "1.1rem", color: "var(--color-orange-primary)", borderBottom: "2px solid var(--color-orange-primary)", paddingBottom: "8px", marginBottom: "16px", fontWeight: "700" }}>
+              📍 Delivery Information
+            </h3>
+            <table className="receipt-info-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.95rem" }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)", width: "40%" }}><strong>Delivery Address:</strong></td>
+                  <td style={{ padding: "8px 0", fontWeight: "600", color: "var(--color-text-main)", lineHeight: "1.5" }}>{addressLineText}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Section 4: ORDER ITEMS */}
+          <div className="receipt-section-card" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-slate-border)", borderRadius: "var(--radius-lg)", padding: "24px", marginBottom: "20px" }}>
+            <h3 style={{ fontSize: "1.1rem", color: "var(--color-orange-primary)", borderBottom: "2px solid var(--color-orange-primary)", paddingBottom: "8px", marginBottom: "16px", fontWeight: "700" }}>
+              📦 Ordered Items ({items.length})
+            </h3>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.92rem" }}>
+                <thead>
+                  <tr style={{ background: "var(--color-bg-light)", color: "var(--color-text-muted)" }}>
+                    <th style={{ padding: "10px 14px", textAlign: "left" }}>Product</th>
+                    <th style={{ padding: "10px 14px", textAlign: "center" }}>Qty</th>
+                    <th style={{ padding: "10px 14px", textAlign: "right" }}>Unit Price</th>
+                    <th style={{ padding: "10px 14px", textAlign: "right" }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, idx) => {
+                    const qty = item.quantity || 1;
+                    const price = Number(item.price || 0);
+                    const itemTotal = price * qty;
+                    return (
+                      <tr key={idx} style={{ borderBottom: "1px solid var(--color-slate-border)" }}>
+                        <td style={{ padding: "12px 14px", fontWeight: "600", color: "var(--color-text-main)" }}>
+                          {item.name || item.title || `Product #${item.id || idx + 1}`}
+                        </td>
+                        <td style={{ padding: "12px 14px", textAlign: "center", color: "var(--color-text-muted)" }}>
+                          {qty}
+                        </td>
+                        <td style={{ padding: "12px 14px", textAlign: "right", color: "var(--color-text-muted)" }}>
+                          ₹{price.toFixed(2)}
+                        </td>
+                        <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: "700", color: "var(--color-orange-primary)" }}>
+                          ₹{itemTotal.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Order Details Summary Box */}
-          <div
-            style={{
-              background: "var(--color-bg-light)",
-              padding: "20px",
-              borderRadius: "12px",
-              marginBottom: "24px",
-              border: "1px solid var(--color-slate-border)",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "14px",
-                fontSize: "15px",
-              }}
-            >
-              <div>
-                <span style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Order Reference:</span>
-                <div style={{ fontWeight: "bold", color: "var(--color-text-main)", fontSize: "17px" }}>
-                  #{orderId}
-                </div>
-              </div>
-
-              <div>
-                <span style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Payment Method:</span>
-                <div style={{ fontWeight: "bold", color: isOnline ? "var(--color-orange-primary)" : "var(--color-warning)" }}>
-                  {isOnline ? "Online Payment (Razorpay)" : "Cash on Delivery (COD)"}
-                </div>
-              </div>
-
-              <div>
-                <span style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Payment Status:</span>
-                <div style={{ fontWeight: "700", color: isOnline ? "var(--color-success)" : "var(--color-warning)" }}>
-                  {isOnline ? "PAID ✅" : "PENDING (Pay on Delivery) 🚚"}
-                </div>
-              </div>
-
-              <div>
-                <span style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Total Order Value:</span>
-                <div style={{ fontWeight: "bold", color: "var(--color-orange-primary)", fontSize: "18px" }}>
-                  ₹{Number(totalAmount).toFixed(2)}
-                </div>
-              </div>
+          {/* Section 5: ORDER SUMMARY */}
+          <div className="receipt-section-card" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-slate-border)", borderRadius: "var(--radius-lg)", padding: "24px", marginBottom: "24px" }}>
+            <h3 style={{ fontSize: "1.1rem", color: "var(--color-orange-primary)", borderBottom: "2px solid var(--color-orange-primary)", paddingBottom: "8px", marginBottom: "16px", fontWeight: "700" }}>
+              💳 Order Summary
+            </h3>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px", fontSize: "0.95rem" }}>
+              <span style={{ color: "var(--color-text-muted)" }}>Subtotal:</span>
+              <span style={{ fontWeight: "600", color: "var(--color-text-main)" }}>₹{subtotal.toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px", fontSize: "0.95rem" }}>
+              <span style={{ color: "var(--color-text-muted)" }}>Shipping / Freight:</span>
+              <span style={{ fontWeight: "700", color: shipping === 0 ? "var(--color-success)" : "var(--color-text-main)" }}>
+                {shipping === 0 ? "FREE (Orders ≥ ₹1,000)" : `₹${shipping.toFixed(2)}`}
+              </span>
+            </div>
+            <div style={{ borderTop: "2px solid var(--color-slate-border)", paddingTop: "12px", marginTop: "10px", display: "flex", justifyContent: "space-between", fontSize: "1.25rem", fontWeight: "800" }}>
+              <span>Total Amount:</span>
+              <span style={{ color: "var(--color-orange-primary)" }}>₹{finalTotal.toFixed(2)}</span>
             </div>
           </div>
-
-          {/* Items Table */}
-          {items.length > 0 && (
-            <div style={{ marginBottom: "28px" }}>
-              <h3
-                style={{
-                  fontSize: "18px",
-                  color: "var(--color-text-main)",
-                  borderBottom: "1px solid var(--color-slate-border)",
-                  paddingBottom: "10px",
-                  marginBottom: "16px",
-                  fontWeight: "700",
-                }}
-              >
-                Ordered Materials ({items.length})
-              </h3>
-              <div style={{ overflowX: "auto" }}>
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    fontSize: "14px",
-                    textAlign: "left",
-                  }}
-                >
-                  <thead>
-                    <tr style={{ background: "var(--color-bg-light)", color: "var(--color-text-muted)" }}>
-                      <th style={{ padding: "12px", borderRadius: "6px 0 0 6px" }}>Material Name</th>
-                      <th style={{ padding: "12px", textAlign: "center" }}>Qty</th>
-                      <th style={{ padding: "12px", textAlign: "right" }}>Unit Price</th>
-                      <th style={{ padding: "12px", textAlign: "right", borderRadius: "0 6px 6px 0" }}>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, idx) => {
-                      const qty = item.quantity || 1;
-                      const price = Number(item.price || 0);
-                      const subtotal = price * qty;
-                      return (
-                        <tr
-                          key={idx}
-                          style={{
-                            borderBottom: "1px solid var(--color-slate-border)",
-                          }}
-                        >
-                          <td style={{ padding: "12px", color: "var(--color-text-main)", fontWeight: "600" }}>
-                            {item.name || item.title || `Product #${item.id || idx + 1}`}
-                          </td>
-                          <td style={{ padding: "12px", textAlign: "center", color: "var(--color-text-muted)" }}>
-                            {qty}
-                          </td>
-                          <td style={{ padding: "12px", textAlign: "right", color: "var(--color-text-muted)" }}>
-                            ₹{price.toFixed(2)}
-                          </td>
-                          <td style={{ padding: "12px", textAlign: "right", color: "var(--color-orange-primary)", fontWeight: "bold" }}>
-                            ₹{subtotal.toFixed(2)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
 
           <div style={{ textAlign: "center", marginTop: "24px" }}>
             <button
               className="checkout-button"
               onClick={() => navigate("/")}
-              style={{
-                padding: "14px 32px",
-                fontSize: "16px",
-                fontWeight: "700",
-                borderRadius: "var(--radius-md)",
-              }}
+              style={{ padding: "14px 36px", fontSize: "1rem", fontWeight: "700" }}
             >
-              Continue Shopping
+              Continue Shopping →
             </button>
           </div>
         </div>

@@ -18,6 +18,9 @@ const generate6DigitOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const GMAIL_REGEX = /^[A-Za-z0-9._%+-]+@gmail\.com$/i;
+const PHONE_REGEX = /^[0-9]{10}$/;
+
 /**
  * @route   POST /api/auth/send-otp
  * @desc    Generates and emails a 6-digit OTP for Signup Verification
@@ -25,8 +28,8 @@ const generate6DigitOtp = () => {
 export const sendSignupOtp = async (req, res) => {
   const { email, name } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ error: "Email address is required." });
+  if (!email || !GMAIL_REGEX.test(String(email).trim())) {
+    return res.status(400).json({ error: "Please enter a valid Gmail address ending with @gmail.com." });
   }
 
   try {
@@ -67,6 +70,14 @@ export const register = async (req, res) => {
     return res
       .status(400)
       .json({ error: "Please enter all required fields including the 6-digit OTP code." });
+  }
+
+  if (!GMAIL_REGEX.test(String(email).trim())) {
+    return res.status(400).json({ error: "Please enter a valid Gmail address ending with @gmail.com." });
+  }
+
+  if (phone_number && !PHONE_REGEX.test(String(phone_number).trim())) {
+    return res.status(400).json({ error: "Mobile number must be exactly 10 digits." });
   }
 
   try {

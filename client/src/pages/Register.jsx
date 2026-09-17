@@ -24,11 +24,25 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const GMAIL_REGEX = /^[A-Za-z0-9._%+-]+@gmail\.com$/i;
+  const PHONE_REGEX = /^[0-9]{10}$/;
+
   // Step 1: Send OTP to User Email
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError("");
     setInfoMessage("");
+
+    if (!formData.email || !GMAIL_REGEX.test(formData.email.trim())) {
+      setError("Please enter a valid Gmail address ending with @gmail.com.");
+      return;
+    }
+
+    if (formData.phone_number && !PHONE_REGEX.test(formData.phone_number.trim())) {
+      setError("Mobile number must be exactly 10 digits.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -133,9 +147,14 @@ const Register = () => {
               <input
                 type="tel"
                 name="phone_number"
-                placeholder="Phone Number (Optional)"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="Phone Number (10 digits)"
                 value={formData.phone_number}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setFormData({ ...formData, phone_number: val });
+                }}
               />
             </div>
 
