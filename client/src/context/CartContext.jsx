@@ -149,6 +149,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
 } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
@@ -184,13 +185,21 @@ export const CartProvider = ({ children }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
   // -----------------------------
   // Sync cart state when auth state changes (login, logout, switch user)
   // -----------------------------
+  const activeCartKeyRef = useRef(getCartKey(user));
+  const isHydratingCartRef = useRef(true);
+
   useEffect(() => {
+    const key = getCartKey(user);
+
+    // Mark this render as a cart hydration so the persistence
+    // effect cannot save the previous user's cart into this key.
+    activeCartKeyRef.current = key;
+    isHydratingCartRef.current = true;
+
     try {
-      const key = getCartKey(user);
       const stored = localStorage.getItem(key);
       setCartItems(stored ? JSON.parse(stored) : []);
     } catch {
@@ -203,6 +212,18 @@ export const CartProvider = ({ children }) => {
   // -----------------------------
   useEffect(() => {
     const key = getCartKey(user);
+
+    // Skip the persistence pass caused by an auth/user change.
+    // The cart has just been loaded for this user.
+    if (isHydratingCartRef.current) {
+      isHydratingCartRef.current = false;
+      return;
+    }
+
+    if (activeCartKeyRef.current !== key) {
+      return;
+    }
+
     localStorage.setItem(key, JSON.stringify(cartItems));
   }, [cartItems, user?.id, user?.email]);
 
