@@ -51,16 +51,20 @@
 
 import pool from "../config/db.js";
 
+const ADMIN_EMAIL = "adityaenterprisesofficial62@gmail.com";
+
+const isAuthorizedAdmin = (req) => {
+  const email = (req.user?.email || "").toLowerCase().trim();
+  return Boolean(email && email === ADMIN_EMAIL);
+};
+
 /* ===============================
-   GET all orders (OWNER ONLY)
+   GET all orders (OWNER/ADMIN ONLY)
    =============================== */
 export const getAllOrders = async (req, res) => {
   try {
-    // 🔐 Owner check
-    if (
-      !req.user ||
-      Number(req.user.id) !== Number(process.env.OWNER_USER_ID)
-    ) {
+    // 🔐 Admin authorization check via ADMIN_EMAIL
+    if (!isAuthorizedAdmin(req)) {
       return res.status(403).json({ message: "Admin access only" });
     }
 
@@ -69,12 +73,13 @@ export const getAllOrders = async (req, res) => {
         o.id,
         o.total_amount,
         o.status,
-        o.order_date,
+        COALESCE(o.created_at, o.order_date) AS created_at,
         o.payment_status,
-        u.name AS customer_name
+        u.name AS customer_name,
+        u.email
       FROM orders o
       JOIN users u ON o.user_id = u.id
-      ORDER BY o.order_date DESC
+      ORDER BY COALESCE(o.created_at, o.order_date) DESC
     `);
 
     res.status(200).json(result.rows);
@@ -85,15 +90,12 @@ export const getAllOrders = async (req, res) => {
 };
 
 /* ===============================
-   UPDATE order status (OWNER ONLY)
+   UPDATE order status (OWNER/ADMIN ONLY)
    =============================== */
 export const updateOrderStatus = async (req, res) => {
   try {
-    // 🔐 Owner check
-    if (
-      !req.user ||
-      Number(req.user.id) !== Number(process.env.OWNER_USER_ID)
-    ) {
+    // 🔐 Admin authorization check via ADMIN_EMAIL
+    if (!isAuthorizedAdmin(req)) {
       return res.status(403).json({ message: "Admin access only" });
     }
 

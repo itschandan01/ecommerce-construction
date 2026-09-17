@@ -160,23 +160,31 @@ import { useAuth } from "./AuthContext";
  */
 const CartContext = createContext();
 
+const ADMIN_EMAIL = "adityaenterprisesofficial62@gmail.com";
+
 const getCartKey = (user) => {
-  if (user && (user.id || user.email)) {
-    return `cartItems_${user.id || user.email}`;
+  if (!user || !user.email) {
+    return "cartItems_guest";
   }
-  return "cartItems_guest";
+  const email = user.email.toLowerCase().trim();
+  if (email === ADMIN_EMAIL) {
+    return null; // Admin has no cart storage key
+  }
+  return `cartItems_${email}`;
 };
 
 export const CartProvider = ({ children }) => {
   const { user, token } = useAuth();
+  const targetKey = getCartKey(user);
+  const isAdmin = !targetKey;
 
   // -----------------------------
-  // State
+  // State & Active Key Tracking
   // -----------------------------
   const [cartItems, setCartItems] = useState(() => {
+    if (!targetKey) return [];
     try {
-      const key = getCartKey(user);
-      const stored = localStorage.getItem(key);
+      const stored = localStorage.getItem(targetKey);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -185,102 +193,118 @@ export const CartProvider = ({ children }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  // -----------------------------
-  // Sync cart state when auth state changes (login, logout, switch user)
-  // -----------------------------
-  const activeCartKeyRef = useRef(getCartKey(user));
-  const isHydratingCartRef = useRef(true);
 
+  // Loaded key reference to guard against stale cart rendering
+  const loadedKeyRef = useRef(targetKey);
+
+  // Synchronize cart state on auth/user change (hydration only, no writing)
   useEffect(() => {
-    const key = getCartKey(user);
-
-    // Mark this render as a cart hydration so the persistence
-    // effect cannot save the previous user's cart into this key.
-    activeCartKeyRef.current = key;
-    isHydratingCartRef.current = true;
+    loadedKeyRef.current = targetKey;
+    if (!targetKey) {
+      setCartItems([]);
+      return;
+    }
 
     try {
-      const stored = localStorage.getItem(key);
+      const stored = localStorage.getItem(targetKey);
       setCartItems(stored ? JSON.parse(stored) : []);
     } catch {
       setCartItems([]);
     }
-  }, [user?.id, user?.email]);
+  }, [targetKey]);
+
+  // Derived effective cart items:
+  // Evaluates immediately to [] for Admin or when targetKey has not hydrated yet.
+  const effectiveItems =
+    isAdmin || loadedKeyRef.current !== targetKey ? [] : cartItems;
 
   // -----------------------------
-  // Persist cart to localStorage
-  // -----------------------------
-  useEffect(() => {
-    const key = getCartKey(user);
-
-    // Skip the persistence pass caused by an auth/user change.
-    // The cart has just been loaded for this user.
-    if (isHydratingCartRef.current) {
-      isHydratingCartRef.current = false;
-      return;
-    }
-
-    if (activeCartKeyRef.current !== key) {
-      return;
-    }
-
-    localStorage.setItem(key, JSON.stringify(cartItems));
-  }, [cartItems, user?.id, user?.email]);
-
-  // -----------------------------
-  // Cart Operations
+  // Cart Operations (Action-Based Persistence)
   // -----------------------------
   const addToCart = (product, quantity = 1) => {
+    if (isAdmin || !targetKey) return; // Admin cannot add to cart
+
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
+      let updated;
 
       if (existing) {
-        return prev.map((item) =>
+        updated = prev.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
+      } else {
+        updated = [
+          ...prev,
+          {
+            ...product,
+            quantity,
+            price: Number(product.price),
+          },
+        ];
       }
 
-      return [
-        ...prev,
-        {
-          ...product,
-          quantity,
-          price: Number(product.price), // ensure numeric
-        },
-      ];
+      try {
+        localStorage.setItem(targetKey, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Failed to persist cart:", e);
+      }
+
+      return updated;
     });
   };
 
   const updateQuantity = (productId, quantity) => {
+    if (isAdmin || !targetKey) return;
+
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
     }
 
-    setCartItems((prev) =>
-      prev.map((item) =>
+    setCartItems((prev) => {
+      const updated = prev.map((item) =>
         item.id === productId ? { ...item, quantity } : item
-      )
-    );
+      );
+
+      try {
+        localStorage.setItem(targetKey, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Failed to persist cart:", e);
+      }
+
+      return updated;
+    });
   };
 
   const removeFromCart = (productId) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== productId));
+    if (isAdmin || !targetKey) return;
+
+    setCartItems((prev) => {
+      const updated = prev.filter((item) => item.id !== productId);
+
+      try {
+        localStorage.setItem(targetKey, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Failed to persist cart:", e);
+      }
+
+      return updated;
+    });
   };
 
   /**
    * Clears cart completely
-   * Used after successful order placement
    */
   const clearCart = () => {
     setCartItems([]);
-    try {
-      const key = getCartKey(user);
-      localStorage.removeItem(key);
-    } catch (e) {
-      console.error("Failed to clear cart storage:", e);
+    if (targetKey) {
+      try {
+        localStorage.removeItem(targetKey);
+      } catch (e) {
+        console.error("Failed to clear cart storage:", e);
+      }
     }
   };
 
@@ -288,18 +312,17 @@ export const CartProvider = ({ children }) => {
   // Helpers
   // -----------------------------
   const getTotal = () => {
-    return cartItems
+    return effectiveItems
       .reduce((sum, item) => sum + item.price * item.quantity, 0)
       .toFixed(2);
   };
 
   const getItemCount = () => {
-    return cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    return effectiveItems.reduce((sum, item) => sum + item.quantity, 0);
   };
 
   // -----------------------------
   // OPTIONAL: Old direct checkout
-  // (Not used in Razorpay/COD flow)
   // -----------------------------
   const checkout = async () => {
     if (!token) {
@@ -307,7 +330,7 @@ export const CartProvider = ({ children }) => {
       return false;
     }
 
-    if (cartItems.length === 0) {
+    if (effectiveItems.length === 0) {
       setError("Your cart is empty.");
       return false;
     }
@@ -317,7 +340,7 @@ export const CartProvider = ({ children }) => {
 
     try {
       const payload = {
-        items: cartItems.map((item) => ({
+        items: effectiveItems.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
           price: item.price,
@@ -340,8 +363,7 @@ export const CartProvider = ({ children }) => {
       return response.data;
     } catch (err) {
       setError(
-        err.response?.data?.error ||
-          "Checkout failed due to server error."
+        err.response?.data?.error || "Checkout failed due to server error."
       );
       setLoading(false);
       return false;
@@ -354,7 +376,7 @@ export const CartProvider = ({ children }) => {
   return (
     <CartContext.Provider
       value={{
-        cartItems,
+        cartItems: effectiveItems,
         loading,
         error,
         addToCart,
@@ -363,7 +385,7 @@ export const CartProvider = ({ children }) => {
         clearCart,
         getTotal,
         getItemCount,
-        checkout, // optional legacy
+        checkout,
       }}
     >
       {children}

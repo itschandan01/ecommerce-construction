@@ -100,7 +100,7 @@ const AdminOrders = () => {
                       ₹{Number(order.total_amount || 0).toFixed(2)}
                     </td>
                     <td style={{ padding: '14px 18px', fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
-                      {safeFormatDate(order.created_at || order.date)}
+                      {safeFormatDate(order.created_at || order.order_date || order.date)}
                     </td>
                     <td style={{ padding: '14px 18px', textAlign: 'center' }}>
                       <span className={`status-badge ${String(order.status).toLowerCase()}`} style={{ padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', background: order.status === 'done' || order.status === 'PAID' ? '#d1fae5' : '#fef3c7', color: order.status === 'done' || order.status === 'PAID' ? '#065f46' : '#92400e' }}>
