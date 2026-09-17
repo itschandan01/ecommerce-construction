@@ -1,3 +1,4 @@
+// client/src/pages/CheckoutAddress.jsx
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
@@ -17,6 +18,8 @@ export default function CheckoutAddress() {
     pincode: "",
   });
 
+  const [loading, setLoading] = useState(false);
+
   const submit = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -35,11 +38,15 @@ export default function CheckoutAddress() {
         }
       }
 
+      setLoading(true);
+
       const res = await api.post("/addresses", form, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      setLoading(false);
 
       navigate("/checkout/payment", {
         state: {
@@ -48,6 +55,7 @@ export default function CheckoutAddress() {
         },
       });
     } catch (err) {
+      setLoading(false);
       console.error("Address save failed:", err?.response?.data || err.message);
 
       if (err.response?.status === 401) {
@@ -65,9 +73,25 @@ export default function CheckoutAddress() {
       <Header />
 
       <div className="page-container">
+        {/* Step Indicator */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            1. Cart
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-orange-primary)', color: '#fff', fontSize: '0.82rem', fontWeight: 700 }}>
+            2. Delivery Address
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            3. Payment
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            4. Confirmation
+          </div>
+        </div>
+
         <div className="checkout-card">
-          <h2>Delivery Address</h2>
-          <p>Enter your delivery details carefully</p>
+          <h2>📍 Delivery Address</h2>
+          <p>Enter your site delivery details carefully for accurate material dispatch.</p>
 
           <div className="form-grid">
             <input
@@ -78,14 +102,15 @@ export default function CheckoutAddress() {
               }
             />
             <input
-              placeholder="Phone Number"
+              placeholder="Phone Number (10 digits)"
               value={form.phone}
               onChange={(e) =>
                 setForm({ ...form, phone: e.target.value })
               }
             />
             <textarea
-              placeholder="Complete Address"
+              placeholder="Complete Site / Street Address"
+              rows={3}
               value={form.address_line}
               onChange={(e) =>
                 setForm({ ...form, address_line: e.target.value })
@@ -114,8 +139,8 @@ export default function CheckoutAddress() {
             />
           </div>
 
-          <button className="checkout-button" onClick={submit}>
-            Continue to Payment
+          <button className="checkout-button" onClick={submit} disabled={loading}>
+            {loading ? "Saving Address..." : "Continue to Payment →"}
           </button>
         </div>
       </div>
@@ -124,4 +149,3 @@ export default function CheckoutAddress() {
     </>
   );
 }
-

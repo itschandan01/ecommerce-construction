@@ -159,15 +159,23 @@ import { useAuth } from "./AuthContext";
  */
 const CartContext = createContext();
 
+const getCartKey = (user) => {
+  if (user && (user.id || user.email)) {
+    return `cartItems_${user.id || user.email}`;
+  }
+  return "cartItems_guest";
+};
+
 export const CartProvider = ({ children }) => {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
 
   // -----------------------------
   // State
   // -----------------------------
   const [cartItems, setCartItems] = useState(() => {
     try {
-      const stored = localStorage.getItem("cartItems");
+      const key = getCartKey(user);
+      const stored = localStorage.getItem(key);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -178,11 +186,25 @@ export const CartProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   // -----------------------------
+  // Sync cart state when auth state changes (login, logout, switch user)
+  // -----------------------------
+  useEffect(() => {
+    try {
+      const key = getCartKey(user);
+      const stored = localStorage.getItem(key);
+      setCartItems(stored ? JSON.parse(stored) : []);
+    } catch {
+      setCartItems([]);
+    }
+  }, [user?.id, user?.email]);
+
+  // -----------------------------
   // Persist cart to localStorage
   // -----------------------------
   useEffect(() => {
-    localStorage.setItem("cartItems", JSON.stringify(cartItems));
-  }, [cartItems]);
+    const key = getCartKey(user);
+    localStorage.setItem(key, JSON.stringify(cartItems));
+  }, [cartItems, user?.id, user?.email]);
 
   // -----------------------------
   // Cart Operations
@@ -233,6 +255,12 @@ export const CartProvider = ({ children }) => {
    */
   const clearCart = () => {
     setCartItems([]);
+    try {
+      const key = getCartKey(user);
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.error("Failed to clear cart storage:", e);
+    }
   };
 
   // -----------------------------

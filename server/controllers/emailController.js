@@ -169,43 +169,72 @@ export const sendOrderConfirmation = async ({
   order,
   items,
   paymentMethod,
+  address,
 }) => {
-  const formattedItemsHtml = (items || [])
-    .map((item) => {
-      const itemTotal =
-        Number(item.price || 0) * Number(item.quantity || 1);
+  const addr = address || order.address || {};
+  const customerName = addr.full_name || order.user_name || "Valued Customer";
+  const customerPhone = addr.phone || order.phone || "N/A";
+  const customerEmail = order.email || process.env.ADMIN_EMAIL;
+  const adminEmail = process.env.ADMIN_EMAIL;
 
+  const rawDate = order.created_at || order.createdDate || order.date;
+  const formattedOrderDate = rawDate
+    ? new Date(rawDate).toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Asia/Kolkata",
+      })
+    : new Date().toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Asia/Kolkata",
+      });
+
+  const addressParts = [
+    addr.address_line || addr.street_address,
+    addr.city,
+    addr.state,
+    addr.pincode ? `Pincode: ${addr.pincode}` : null,
+  ].filter(Boolean);
+  const addressText = addressParts.length > 0 ? addressParts.join(", ") : "Delivery details on file";
+
+  // Calculate items subtotal and shipping
+  const itemList = items || order.items || [];
+  const calculatedSubtotal = itemList.reduce(
+    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
+    0
+  );
+  const subtotal = order.subtotal !== undefined ? Number(order.subtotal) : calculatedSubtotal;
+  const shipping = order.shipping !== undefined ? Number(order.shipping) : (subtotal >= 1000 ? 0 : 50);
+  const totalAmount = order.total_amount !== undefined ? Number(order.total_amount) : (subtotal + shipping);
+
+  const formattedItemsHtml = itemList
+    .map((item) => {
+      const itemTotal = Number(item.price || 0) * Number(item.quantity || 1);
       return `
         <tr>
-
           <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; color: #2d3748;">
-            <strong>
-              ${item.name || `Product #${item.productId || "Item"}`}
-            </strong>
+            <strong>${item.name || `Product #${item.productId || "Item"}`}</strong>
           </td>
-
           <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center; color: #4a5568;">
             ${item.quantity || 1}
           </td>
-
           <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #2d3748;">
             ₹${Number(item.price || 0).toFixed(2)}
           </td>
-
-          <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #2b6cb0; font-weight: bold;">
+          <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #f97316; font-weight: bold;">
             ₹${itemTotal.toFixed(2)}
           </td>
-
         </tr>
       `;
     })
     .join("");
 
-  const formattedItemsText = (items || [])
+  const formattedItemsText = itemList
     .map(
       (i) =>
         `- ${i.name || "Product"} × ${i.quantity || 1} @ ₹${i.price} = ₹${(
-          i.price * i.quantity
+          Number(i.price || 0) * Number(i.quantity || 1)
         ).toFixed(2)}`
     )
     .join("\n");
@@ -215,179 +244,149 @@ export const sendOrderConfirmation = async ({
       ? "Pay Online (Razorpay) - PAID"
       : "Cash on Delivery (COD) - PENDING";
 
-  const customerEmail =
-    order.email || process.env.ADMIN_EMAIL;
-
-  const adminEmail =
-    process.env.ADMIN_EMAIL;
+  const shippingText = shipping === 0 ? "FREE" : `₹${shipping.toFixed(2)}`;
 
   return sendEmail({
     to: customerEmail,
-
-    cc:
-      adminEmail && adminEmail !== customerEmail
-        ? adminEmail
-        : undefined,
-
-    subject:
-      `Order #${order.id} Confirmation - Aditya Enterprises`,
-
+    cc: adminEmail && adminEmail !== customerEmail ? adminEmail : undefined,
+    subject: `Order #${order.id} Confirmation - Aditya Enterprises`,
     text: `
-Thank you for your order!
+------------------------------------
+ADITYA ENTERPRISES
+Order Confirmation
+------------------------------------
 
-Order ID: ${order.id}
-Total Paid: ₹${order.total_amount}
+Hello, ${customerName}!
+
+Thank you for your order.
+
+ORDER DETAILS
+Order ID: #${order.id}
+Order Date: ${formattedOrderDate}
 Payment Method: ${paymentMethodText}
 
-Items Ordered:
+CUSTOMER DETAILS
+Name: ${customerName}
+Phone: ${customerPhone}
+Email: ${customerEmail}
+
+DELIVERY DETAILS
+Delivery Address:
+${addressText}
+
+ORDER ITEMS:
 ${formattedItemsText}
 
-We will process and deliver your order shortly.
+ORDER SUMMARY:
+Subtotal: ₹${subtotal.toFixed(2)}
+Shipping: ${shippingText}
+Total Amount: ₹${totalAmount.toFixed(2)}
 
-Aditya Enterprises
+Thank you for choosing Aditya Enterprises.
+Build Today. Better Tomorrow.
+------------------------------------
 `,
-
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background-color: #ffffff;">
-
+      <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background-color: #ffffff;">
         <!-- Header -->
-
-        <div style="background-color: #1a202c; color: #ffffff; padding: 25px; text-align: center;">
-
-          <h1 style="margin: 0; font-size: 24px; color: #3182ce;">
-            Aditya Enterprises
+        <div style="background-color: #0b192c; color: #ffffff; padding: 25px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px; color: #f97316;">
+            🏗️ Aditya Enterprises
           </h1>
-
           <p style="margin: 5px 0 0 0; color: #cbd5e0; font-size: 14px;">
-            Construction & Building Materials
+            Construction Materials Supplier • Build Today. Better Tomorrow.
           </p>
-
         </div>
 
         <!-- Content -->
-
         <div style="padding: 30px;">
-
           <div style="text-align: center; margin-bottom: 25px;">
-
-            <div style="background-color: #c6f6d5; color: #22543d; display: inline-block; padding: 8px 18px; border-radius: 20px; font-weight: bold; font-size: 14px;">
+            <div style="background-color: #d1fae5; color: #065f46; display: inline-block; padding: 8px 18px; border-radius: 20px; font-weight: bold; font-size: 14px;">
               🎉 Order Successfully Placed!
             </div>
-
             <p style="color: #4a5568; margin-top: 15px; font-size: 15px;">
-              Thank you for your order. A copy of this receipt has been saved for your records.
+              Hello <strong>${customerName}</strong>, thank you for your order with Aditya Enterprises.
             </p>
-
           </div>
 
-          <!-- Order Summary Card -->
-
-          <div style="background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 25px;">
-
+          <!-- Order & Payment Info Card -->
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 25px;">
             <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #4a5568;">
-
               <tr>
-
-                <td style="padding: 4px 0;">
-                  <strong>Order ID:</strong>
-                </td>
-
-                <td style="text-align: right; color: #2d3748; font-weight: bold;">
-                  #${order.id}
-                </td>
-
+                <td style="padding: 6px 0;"><strong>Order ID:</strong></td>
+                <td style="text-align: right; color: #0f172a; font-weight: bold;">#${order.id}</td>
               </tr>
-
               <tr>
-
-                <td style="padding: 4px 0;">
-                  <strong>Payment Method:</strong>
-                </td>
-
-                <td style="text-align: right; color: #2b6cb0; font-weight: 600;">
-                  ${paymentMethodText}
-                </td>
-
+                <td style="padding: 6px 0;"><strong>Order Date:</strong></td>
+                <td style="text-align: right; color: #0f172a; font-weight: 500;">${formattedOrderDate}</td>
               </tr>
-
               <tr>
-
-                <td style="padding: 4px 0;">
-                  <strong>Order Status:</strong>
-                </td>
-
-                <td style="text-align: right; color: #38a169; font-weight: 600;">
-                  CONFIRMED
-                </td>
-
+                <td style="padding: 6px 0;"><strong>Payment Method:</strong></td>
+                <td style="text-align: right; color: #f97316; font-weight: 600;">${paymentMethodText}</td>
               </tr>
-
+              <tr>
+                <td style="padding: 6px 0;"><strong>Order Status:</strong></td>
+                <td style="text-align: right; color: #10b981; font-weight: 600;">CONFIRMED</td>
+              </tr>
             </table>
-
           </div>
 
-          <!-- Items -->
+          <!-- Customer & Delivery Details Card -->
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 25px;">
+            <h4 style="margin: 0 0 12px 0; color: #0f172a; font-size: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">
+              📍 Customer & Delivery Information
+            </h4>
+            <p style="margin: 4px 0; font-size: 14px; color: #334155;"><strong>Name:</strong> ${customerName}</p>
+            <p style="margin: 4px 0; font-size: 14px; color: #334155;"><strong>Phone:</strong> ${customerPhone}</p>
+            <p style="margin: 4px 0; font-size: 14px; color: #334155;"><strong>Email:</strong> ${customerEmail}</p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; color: #334155;"><strong>Delivery Address:</strong><br />${addressText}</p>
+          </div>
 
-          <h3 style="color: #2d3748; margin-bottom: 12px; font-size: 16px; border-bottom: 2px solid #edf2f7; padding-bottom: 8px;">
-            Order Items
+          <!-- Items Table -->
+          <h3 style="color: #0f172a; margin-bottom: 12px; font-size: 16px; border-bottom: 2px solid #f97316; padding-bottom: 8px;">
+            Ordered Items
           </h3>
-
           <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 25px;">
-
             <thead>
-
-              <tr style="background-color: #edf2f7; color: #4a5568;">
-
-                <th style="padding: 10px; text-align: left;">
-                  Item Name
-                </th>
-
-                <th style="padding: 10px; text-align: center;">
-                  Qty
-                </th>
-
-                <th style="padding: 10px; text-align: right;">
-                  Unit Price
-                </th>
-
-                <th style="padding: 10px; text-align: right;">
-                  Total
-                </th>
-
+              <tr style="background-color: #f1f5f9; color: #475569;">
+                <th style="padding: 10px; text-align: left;">Item Name</th>
+                <th style="padding: 10px; text-align: center;">Qty</th>
+                <th style="padding: 10px; text-align: right;">Unit Price</th>
+                <th style="padding: 10px; text-align: right;">Total</th>
               </tr>
-
             </thead>
-
             <tbody>
               ${formattedItemsHtml}
             </tbody>
-
           </table>
 
-          <!-- Total -->
-
-          <div style="border-top: 2px solid #e2e8f0; padding-top: 15px; text-align: right;">
-
-            <span style="font-size: 16px; color: #4a5568;">
-              Total Payable Amount:
-            </span>
-
-            <span style="font-size: 22px; font-weight: bold; color: #2b6cb0; margin-left: 10px;">
-              ₹${Number(order.total_amount).toFixed(2)}
-            </span>
-
+          <!-- Financial Breakdown -->
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #475569;">
+              <span>Subtotal:</span>
+              <span style="font-weight: 600; color: #0f172a;">₹${subtotal.toFixed(2)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #475569;">
+              <span>Shipping / Freight:</span>
+              <span style="font-weight: 700; color: ${shipping === 0 ? '#10b981' : '#0f172a'};">
+                ${shipping === 0 ? 'FREE (Orders ≥ ₹1,000)' : `₹${shipping.toFixed(2)}`}
+              </span>
+            </div>
+            <div style="border-top: 2px solid #e2e8f0; padding-top: 10px; display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #0f172a;">
+              <span>Total Amount:</span>
+              <span style="color: #f97316;">₹${totalAmount.toFixed(2)}</span>
+            </div>
           </div>
 
           <!-- Footer -->
-
-          <div style="margin-top: 30px; text-align: center; border-top: 1px solid #edf2f7; padding-top: 20px;">
-
-            <p style="font-size: 13px; color: #718096; margin: 0;">
-              Thank you for trusting Aditya Enterprises!
+          <div style="margin-top: 30px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <p style="font-size: 14px; font-weight: bold; color: #0f172a; margin: 0 0 4px 0;">
+              Aditya Enterprises
             </p>
-
+            <p style="font-size: 13px; color: #64748b; margin: 0;">
+              Build Today. Better Tomorrow.
+            </p>
           </div>
-
         </div>
       </div>
     `,

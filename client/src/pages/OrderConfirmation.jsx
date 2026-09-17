@@ -12,9 +12,9 @@ export default function OrderConfirmation() {
       <>
         <Header />
         <div className="page-container">
-          <div className="checkout-card order-success">
+          <div className="checkout-card" style={{ textAlign: "center" }}>
             <h2>No active order session found.</h2>
-            <button className="checkout-button" onClick={() => navigate("/")}>
+            <button className="checkout-button" onClick={() => navigate("/")} style={{ marginTop: "1rem" }}>
               Back to Home
             </button>
           </div>
@@ -32,83 +32,93 @@ export default function OrderConfirmation() {
       <Header />
 
       <div className="page-container" style={{ padding: "40px 20px" }}>
+        {/* Step Indicator */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            1. Cart
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            2. Delivery Address
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            3. Payment
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-orange-primary)', color: '#fff', fontSize: '0.82rem', fontWeight: 700 }}>
+            4. Confirmation
+          </div>
+        </div>
+
         <div
           className="checkout-card order-success-card"
           style={{
-            maxWidth: "700px",
+            maxWidth: "720px",
             margin: "0 auto",
-            background: "#161d2a",
-            borderRadius: "16px",
-            padding: "36px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
-            border: "1px solid #2d3748",
-            color: "#e2e8f0",
           }}
         >
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
-            <span style={{ fontSize: "48px" }}>🎉</span>
-            <h2 style={{ color: "#48bb78", fontSize: "28px", marginTop: "10px" }}>
+            <span style={{ fontSize: "52px" }}>🎉</span>
+            <h2 style={{ color: "var(--color-success)", fontSize: "28px", marginTop: "10px" }}>
               Order Placed Successfully!
             </h2>
             <div
               style={{
                 display: "inline-block",
-                background: "rgba(72, 187, 120, 0.15)",
-                color: "#48bb78",
+                background: "rgba(16, 185, 129, 0.15)",
+                color: "var(--color-success)",
                 padding: "8px 16px",
                 borderRadius: "20px",
                 fontSize: "14px",
                 fontWeight: "600",
                 marginTop: "10px",
-                border: "1px solid rgba(72, 187, 120, 0.3)",
+                border: "1px solid rgba(16, 185, 129, 0.3)",
               }}
             >
-              📧 A confirmation email with item details has been sent to your registered email!
+              📧 A confirmation email with order details has been sent to your registered email!
             </div>
           </div>
 
-          {/* Order Details Header */}
+          {/* Order Details Summary Box */}
           <div
             style={{
-              background: "#0f172a",
+              background: "var(--color-bg-light)",
               padding: "20px",
               borderRadius: "12px",
               marginBottom: "24px",
-              border: "1px solid #1e293b",
+              border: "1px solid var(--color-slate-border)",
             }}
           >
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                gap: "12px",
+                gap: "14px",
                 fontSize: "15px",
               }}
             >
               <div>
-                <span style={{ color: "#94a3b8" }}>Order ID:</span>
-                <div style={{ fontWeight: "bold", color: "#f8fafc", fontSize: "16px" }}>
+                <span style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Order Reference:</span>
+                <div style={{ fontWeight: "bold", color: "var(--color-text-main)", fontSize: "17px" }}>
                   #{orderId}
                 </div>
               </div>
 
               <div>
-                <span style={{ color: "#94a3b8" }}>Payment Type:</span>
-                <div style={{ fontWeight: "bold", color: isOnline ? "#38bdf8" : "#f59e0b" }}>
+                <span style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Payment Method:</span>
+                <div style={{ fontWeight: "bold", color: isOnline ? "var(--color-orange-primary)" : "var(--color-warning)" }}>
                   {isOnline ? "Online Payment (Razorpay)" : "Cash on Delivery (COD)"}
                 </div>
               </div>
 
               <div>
-                <span style={{ color: "#94a3b8" }}>Payment Status:</span>
-                <div style={{ fontWeight: "600", color: isOnline ? "#48bb78" : "#f59e0b" }}>
+                <span style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Payment Status:</span>
+                <div style={{ fontWeight: "700", color: isOnline ? "var(--color-success)" : "var(--color-warning)" }}>
                   {isOnline ? "PAID ✅" : "PENDING (Pay on Delivery) 🚚"}
                 </div>
               </div>
 
               <div>
-                <span style={{ color: "#94a3b8" }}>Total Amount Paid:</span>
-                <div style={{ fontWeight: "bold", color: "#38bdf8", fontSize: "18px" }}>
+                <span style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Total Order Value:</span>
+                <div style={{ fontWeight: "bold", color: "var(--color-orange-primary)", fontSize: "18px" }}>
                   ₹{Number(totalAmount).toFixed(2)}
                 </div>
               </div>
@@ -121,13 +131,14 @@ export default function OrderConfirmation() {
               <h3
                 style={{
                   fontSize: "18px",
-                  color: "#cbd5e1",
-                  borderBottom: "1px solid #334155",
+                  color: "var(--color-text-main)",
+                  borderBottom: "1px solid var(--color-slate-border)",
                   paddingBottom: "10px",
                   marginBottom: "16px",
+                  fontWeight: "700",
                 }}
               >
-                Ordered Items ({items.length})
+                Ordered Materials ({items.length})
               </h3>
               <div style={{ overflowX: "auto" }}>
                 <table
@@ -139,11 +150,11 @@ export default function OrderConfirmation() {
                   }}
                 >
                   <thead>
-                    <tr style={{ background: "#1e293b", color: "#94a3b8" }}>
-                      <th style={{ padding: "12px" }}>Product Name</th>
+                    <tr style={{ background: "var(--color-bg-light)", color: "var(--color-text-muted)" }}>
+                      <th style={{ padding: "12px", borderRadius: "6px 0 0 6px" }}>Material Name</th>
                       <th style={{ padding: "12px", textAlign: "center" }}>Qty</th>
                       <th style={{ padding: "12px", textAlign: "right" }}>Unit Price</th>
-                      <th style={{ padding: "12px", textAlign: "right" }}>Total</th>
+                      <th style={{ padding: "12px", textAlign: "right", borderRadius: "0 6px 6px 0" }}>Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -155,19 +166,19 @@ export default function OrderConfirmation() {
                         <tr
                           key={idx}
                           style={{
-                            borderBottom: "1px solid #1e293b",
+                            borderBottom: "1px solid var(--color-slate-border)",
                           }}
                         >
-                          <td style={{ padding: "12px", color: "#f8fafc", fontWeight: "500" }}>
+                          <td style={{ padding: "12px", color: "var(--color-text-main)", fontWeight: "600" }}>
                             {item.name || item.title || `Product #${item.id || idx + 1}`}
                           </td>
-                          <td style={{ padding: "12px", textAlign: "center", color: "#cbd5e1" }}>
+                          <td style={{ padding: "12px", textAlign: "center", color: "var(--color-text-muted)" }}>
                             {qty}
                           </td>
-                          <td style={{ padding: "12px", textAlign: "right", color: "#cbd5e1" }}>
+                          <td style={{ padding: "12px", textAlign: "right", color: "var(--color-text-muted)" }}>
                             ₹{price.toFixed(2)}
                           </td>
-                          <td style={{ padding: "12px", textAlign: "right", color: "#38bdf8", fontWeight: "bold" }}>
+                          <td style={{ padding: "12px", textAlign: "right", color: "var(--color-orange-primary)", fontWeight: "bold" }}>
                             ₹{subtotal.toFixed(2)}
                           </td>
                         </tr>
@@ -184,15 +195,10 @@ export default function OrderConfirmation() {
               className="checkout-button"
               onClick={() => navigate("/")}
               style={{
-                background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                color: "#ffffff",
                 padding: "14px 32px",
                 fontSize: "16px",
-                fontWeight: "600",
-                borderRadius: "10px",
-                border: "none",
-                cursor: "pointer",
-                boxShadow: "0 4px 14px rgba(37, 99, 235, 0.4)",
+                fontWeight: "700",
+                borderRadius: "var(--radius-md)",
               }}
             >
               Continue Shopping

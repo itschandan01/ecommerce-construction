@@ -69,13 +69,16 @@ const ForgotPassword = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-card" style={{ maxWidth: "420px", width: "100%" }}>
+      <div className="auth-card" style={{ maxWidth: "450px", width: "100%" }}>
         {step === 1 ? (
-          <form className="auth-form" onSubmit={handleRequestOtp}>
-            <h2>Forgot Password</h2>
-            <p className="auth-subtitle" style={{ color: "#718096", marginBottom: "15px" }}>
-              Enter your registered email address to receive a 6-digit password reset code.
-            </p>
+          <form className="auth-form" onSubmit={handleRequestOtp} style={{ padding: 0, boxShadow: 'none', border: 'none' }}>
+            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🔑</div>
+              <h2>Forgot Password</h2>
+              <p className="auth-subtitle">
+                Enter your registered email address to receive a 6-digit password reset code.
+              </p>
+            </div>
 
             {error && <p className="auth-error">{error}</p>}
 
@@ -89,26 +92,32 @@ const ForgotPassword = () => {
               />
             </div>
 
-            <button type="submit" disabled={loading} style={{ cursor: loading ? "wait" : "pointer" }}>
+            <button type="submit" disabled={loading}>
               {loading ? "Sending Reset Code..." : "Send Reset Code"}
             </button>
 
-            <p style={{ marginTop: "15px", textAlign: "center" }}>
-              Remember your password? <Link to="/login">Sign in</Link>
+            <p style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.9rem", color: "var(--color-text-muted)" }}>
+              Remember your password? <Link to="/login" style={{ color: "var(--color-orange-primary)", fontWeight: 700 }}>Sign in</Link>
             </p>
           </form>
         ) : (
-          <form className="auth-form" onSubmit={handleResetPassword}>
+          <form className="auth-form" onSubmit={handleResetPassword} style={{ padding: 0, boxShadow: 'none', border: 'none' }}>
             <h2>Reset Password</h2>
-            <p className="auth-subtitle" style={{ color: "#4a5568", marginBottom: "15px" }}>
-              Check your email <strong>{email}</strong> for the 6-digit OTP code.
+            <p className="auth-subtitle">
+              Check your email <strong style={{ color: 'var(--color-orange-primary)' }}>{email}</strong> for the 6-digit OTP code.
             </p>
 
-            {infoMessage && <p style={{ color: "#2b6cb0", backgroundColor: "#ebf8ff", padding: "10px", borderRadius: "4px", fontSize: "14px" }}>{infoMessage}</p>}
+            {infoMessage && (
+              <p style={{ color: "#1e40af", backgroundColor: "#dbeafe", padding: "10px 14px", borderRadius: "var(--radius-sm)", fontSize: "0.88rem", marginBottom: '1rem', border: '1px solid #bfdbfe' }}>
+                {infoMessage}
+              </p>
+            )}
             {error && <p className="auth-error">{error}</p>}
 
             <div className="form-group" style={{ margin: "15px 0" }}>
-              <label style={{ display: "block", fontWeight: "600", marginBottom: "5px" }}>6-Digit OTP Code</label>
+              <label style={{ display: "block", fontWeight: "700", marginBottom: "6px", fontSize: '0.88rem' }}>
+                6-Digit Reset Code
+              </label>
               <input
                 type="text"
                 maxLength="6"
@@ -116,11 +125,12 @@ const ForgotPassword = () => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                 style={{
-                  fontSize: "22px",
-                  letterSpacing: "6px",
+                  fontSize: "24px",
+                  letterSpacing: "8px",
                   textAlign: "center",
                   fontWeight: "bold",
-                  padding: "8px"
+                  padding: "10px",
+                  borderRadius: "var(--radius-md)"
                 }}
                 required
               />
@@ -146,19 +156,19 @@ const ForgotPassword = () => {
               />
             </div>
 
-            <button type="submit" disabled={loading} style={{ cursor: loading ? "wait" : "pointer" }}>
+            <button type="submit" disabled={loading}>
               {loading ? "Resetting Password..." : "Reset Password & Login"}
             </button>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "15px", fontSize: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem", fontSize: "0.88rem" }}>
               <button
                 type="button"
                 onClick={handleRequestOtp}
-                style={{ background: "none", border: "none", color: "#3182ce", cursor: "pointer", padding: 0 }}
+                style={{ background: "none", border: "none", color: "var(--color-orange-primary)", cursor: "pointer", fontWeight: 600 }}
               >
                 Resend Code
               </button>
-              <Link to="/login" style={{ color: "#718096" }}>
+              <Link to="/login" style={{ color: "var(--color-text-muted)" }}>
                 Back to Sign in
               </Link>
             </div>

@@ -3,6 +3,43 @@ import pool from "../config/db.js";
 const memoryAddresses = new Map();
 
 /**
+ * Helper: Lookup address by ID (reusing DB query + memory fallback)
+ */
+export const fetchAddressForOrder = async (addressId, userId) => {
+  if (!addressId) return null;
+
+  try {
+    if (userId) {
+      const result = await pool.query(
+        "SELECT * FROM addresses WHERE id = $1 AND user_id = $2",
+        [addressId, userId]
+      );
+      if (result.rows[0]) {
+        return result.rows[0];
+      }
+    } else {
+      const result = await pool.query(
+        "SELECT * FROM addresses WHERE id = $1",
+        [addressId]
+      );
+      if (result.rows[0]) {
+        return result.rows[0];
+      }
+    }
+  } catch (err) {
+    console.warn("DB address lookup notice (using fallback):", err.message);
+  }
+
+  if (userId) {
+    const userAddrs = memoryAddresses.get(userId) || [];
+    const found = userAddrs.find((a) => String(a.id) === String(addressId));
+    if (found) return found;
+  }
+
+  return null;
+};
+
+/**
  * Add new address
  */
 export const addAddress = async (req, res) => {

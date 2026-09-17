@@ -66,11 +66,21 @@ const Register = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-card" style={{ maxWidth: "450px", width: "100%" }}>
+      <div className="auth-card" style={{ maxWidth: "480px", width: "100%" }}>
+        {/* Step indicator */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', background: step === 1 ? 'var(--color-orange-primary)' : 'var(--color-bg-light)', color: step === 1 ? '#fff' : 'var(--color-text-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
+            1. Account Details
+          </div>
+          <div style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', background: step === 2 ? 'var(--color-orange-primary)' : 'var(--color-bg-light)', color: step === 2 ? '#fff' : 'var(--color-text-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
+            2. Email Verification
+          </div>
+        </div>
+
         {step === 1 ? (
-          <form className="auth-form" onSubmit={handleSendOtp}>
-            <h2>Create Account</h2>
-            <p className="auth-subtitle" style={{ color: "#718096", marginBottom: "15px" }}>
+          <form className="auth-form" onSubmit={handleSendOtp} style={{ padding: 0, boxShadow: 'none', border: 'none' }}>
+            <h2>Create Your Account</h2>
+            <p className="auth-subtitle">
               Fill in your details to receive a 6-digit email verification code.
             </p>
 
@@ -113,7 +123,7 @@ const Register = () => {
               <input
                 type="text"
                 name="address"
-                placeholder="Delivery Address"
+                placeholder="Delivery Address (Optional)"
                 value={formData.address}
                 onChange={handleChange}
               />
@@ -123,32 +133,38 @@ const Register = () => {
               <input
                 type="tel"
                 name="phone_number"
-                placeholder="Phone Number"
+                placeholder="Phone Number (Optional)"
                 value={formData.phone_number}
                 onChange={handleChange}
               />
             </div>
 
-            <button type="submit" disabled={loading} style={{ cursor: loading ? "wait" : "pointer" }}>
-              {loading ? "Sending Verification Code..." : "Send 6-Digit Verification Code"}
+            <button type="submit" disabled={loading}>
+              {loading ? "Sending Verification Code..." : "Send 6-Digit Code"}
             </button>
 
-            <p style={{ marginTop: "15px", textAlign: "center" }}>
-              Already have an account? <Link to="/login">Sign in</Link>
+            <p style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.9rem", color: "var(--color-text-muted)" }}>
+              Already have an account? <Link to="/login" style={{ color: "var(--color-orange-primary)", fontWeight: 700 }}>Sign in</Link>
             </p>
           </form>
         ) : (
-          <form className="auth-form" onSubmit={handleVerifyAndRegister}>
+          <form className="auth-form" onSubmit={handleVerifyAndRegister} style={{ padding: 0, boxShadow: 'none', border: 'none' }}>
             <h2>Verify Your Email</h2>
-            <p className="auth-subtitle" style={{ color: "#4a5568", marginBottom: "15px" }}>
-              We sent a 6-digit verification code to <strong>{formData.email}</strong>.
+            <p className="auth-subtitle">
+              We sent a 6-digit verification code to <strong style={{ color: 'var(--color-orange-primary)' }}>{formData.email}</strong>.
             </p>
 
-            {infoMessage && <p style={{ color: "#2b6cb0", backgroundColor: "#ebf8ff", padding: "10px", borderRadius: "4px", fontSize: "14px" }}>{infoMessage}</p>}
+            {infoMessage && (
+              <p style={{ color: "#1e40af", backgroundColor: "#dbeafe", padding: "12px", borderRadius: "var(--radius-sm)", fontSize: "0.88rem", marginBottom: '1rem', border: '1px solid #bfdbfe' }}>
+                {infoMessage}
+              </p>
+            )}
             {error && <p className="auth-error">{error}</p>}
 
             <div className="form-group" style={{ margin: "20px 0" }}>
-              <label style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>Enter 6-Digit OTP Code</label>
+              <label style={{ display: "block", fontWeight: "700", marginBottom: "8px", fontSize: '0.9rem' }}>
+                Enter 6-Digit Verification Code
+              </label>
               <input
                 type="text"
                 name="otp"
@@ -157,34 +173,35 @@ const Register = () => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                 style={{
-                  fontSize: "24px",
-                  letterSpacing: "8px",
+                  fontSize: "26px",
+                  letterSpacing: "10px",
                   textAlign: "center",
                   fontWeight: "bold",
-                  padding: "10px"
+                  padding: "12px",
+                  borderRadius: "var(--radius-md)"
                 }}
                 required
               />
             </div>
 
-            <button type="submit" disabled={loading} style={{ cursor: loading ? "wait" : "pointer" }}>
+            <button type="submit" disabled={loading}>
               {loading ? "Verifying..." : "Verify & Complete Registration"}
             </button>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "15px", fontSize: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem", fontSize: "0.88rem" }}>
               <button
                 type="button"
                 onClick={handleSendOtp}
-                style={{ background: "none", border: "none", color: "#3182ce", cursor: "pointer", padding: 0 }}
+                style={{ background: "none", border: "none", color: "var(--color-orange-primary)", cursor: "pointer", fontWeight: 600 }}
               >
-                Resend OTP
+                Resend OTP Code
               </button>
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                style={{ background: "none", border: "none", color: "#718096", cursor: "pointer", padding: 0 }}
+                style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer" }}
               >
-                Change Email / Details
+                ← Edit Details
               </button>
             </div>
           </form>

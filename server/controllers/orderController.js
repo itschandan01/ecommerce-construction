@@ -180,7 +180,8 @@
 
 import pool from "../config/db.js";
 import { findUserById } from "../models/userModel.js";
-import { decreaseProductStock } from "../models/productModel.js";
+import { decreaseProductStock, findProductById } from "../models/productModel.js";
+import { fetchAddressForOrder } from "./addressController.js";
 import { sendOrderConfirmation } from "./emailController.js";
 
 // In-memory store for orders to maintain items & details across fallback flow
@@ -193,31 +194,85 @@ export const placeOrder = async (req, res) => {
     }
 
     const userId = req.user.id;
-    const { totalAmount, addressId, paymentMethod, items } = req.body;
+    const { addressId, paymentMethod, items } = req.body;
 
-    if (!totalAmount || !addressId || !paymentMethod) {
+    if (!addressId || !paymentMethod) {
       return res.status(400).json({ error: "Missing order data" });
     }
 
+    const rawItems = Array.isArray(items) ? items : [];
+    if (!rawItems.length) {
+      return res.status(400).json({ error: "No items in order" });
+    }
+
+    // 🔒 Server-side validation of products & authoritative prices from database
+    const validatedItems = [];
+    for (const item of rawItems) {
+      const productId = item.productId || item.id;
+      if (!productId) {
+        return res.status(400).json({ error: "Invalid product ID in order items" });
+      }
+
+      const product = await findProductById(productId);
+      if (!product) {
+        return res.status(400).json({ error: `Product #${productId} not found` });
+      }
+
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        return res.status(400).json({ error: `Invalid quantity for product "${product.name}"` });
+      }
+
+      const availableStock = Number(product.stock_quantity || 0);
+      if (quantity > availableStock) {
+        return res.status(400).json({
+          error: `Insufficient stock for product "${product.name}". Available: ${availableStock}, Requested: ${quantity}`,
+        });
+      }
+
+      const authoritativePrice = Number(product.price || 0);
+
+      validatedItems.push({
+        productId: Number(product.id || productId),
+        id: Number(product.id || productId),
+        name: product.name,
+        price: authoritativePrice,
+        quantity,
+        image_url: product.image_url || item.image_url || "",
+      });
+    }
+
+    // Authoritative calculation of Subtotal, Shipping, and Total from validated items
+    const calculatedSubtotal = validatedItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    const calculatedShipping = calculatedSubtotal >= 1000 ? 0 : 50;
+    const validatedTotal = Number((calculatedSubtotal + calculatedShipping).toFixed(2));
+
     // Fetch user details for email notification
     let userEmail = req.body.userEmail || req.user?.email;
+    const user = await findUserById(userId);
     if (!userEmail) {
-      const user = await findUserById(userId);
       userEmail = user?.email || process.env.EMAIL_USER;
     }
 
+    // Fetch address details for confirmation email
+    const addressObj = await fetchAddressForOrder(addressId, userId);
+
     let orderId;
+    let createdAt = new Date().toISOString();
     try {
       const result = await pool.query(
         `
         INSERT INTO orders 
         (user_id, total_amount, address_id, payment_method, payment_status, status)
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id
+        RETURNING id, created_at
         `,
         [
           userId,
-          totalAmount,
+          validatedTotal,
           addressId,
           paymentMethod,
           paymentMethod === "cod" ? "PENDING" : "INITIATED",
@@ -225,6 +280,9 @@ export const placeOrder = async (req, res) => {
         ]
       );
       orderId = result.rows[0]?.id || Date.now();
+      if (result.rows[0]?.created_at) {
+        createdAt = new Date(result.rows[0].created_at).toISOString();
+      }
     } catch (dbErr) {
       console.warn("DB notice during order creation (using fallback):", dbErr.message);
       orderId = Date.now();
@@ -232,27 +290,26 @@ export const placeOrder = async (req, res) => {
 
     const orderData = {
       id: orderId,
+      created_at: createdAt,
       user_id: userId,
       email: userEmail,
-      total_amount: totalAmount,
+      user_name: user?.name || addressObj?.full_name || "Customer",
+      total_amount: validatedTotal,
+      subtotal: calculatedSubtotal,
+      shipping: calculatedShipping,
       address_id: addressId,
+      address: addressObj,
       payment_method: paymentMethod,
-      items: items || [],
+      items: validatedItems,
     };
     ordersMap.set(String(orderId), orderData);
 
-    // 📦 Decrease stock quantity for each ordered item
-    if (items && Array.isArray(items)) {
-      for (const item of items) {
-        const productId = item.productId || item.id;
-        const qty = Number(item.quantity) || 1;
-        if (productId) {
-          try {
-            await decreaseProductStock(productId, qty);
-          } catch (stockErr) {
-            console.warn(`Stock reduction notice for product #${productId}:`, stockErr.message);
-          }
-        }
+    // 📦 Decrease stock quantity for each validated ordered item
+    for (const item of validatedItems) {
+      try {
+        await decreaseProductStock(item.productId, item.quantity);
+      } catch (stockErr) {
+        console.warn(`Stock reduction notice for product #${item.productId}:`, stockErr.message);
       }
     }
 
@@ -260,9 +317,18 @@ export const placeOrder = async (req, res) => {
     if (paymentMethod === "cod" && userEmail) {
       try {
         await sendOrderConfirmation({
-          order: { id: orderId, total_amount: totalAmount, email: userEmail },
-          items: items || [],
+          order: {
+            id: orderId,
+            created_at: createdAt,
+            total_amount: validatedTotal,
+            subtotal: calculatedSubtotal,
+            shipping: calculatedShipping,
+            email: userEmail,
+            user_name: user?.name || addressObj?.full_name || "Customer",
+          },
+          items: validatedItems,
           paymentMethod: "cod",
+          address: addressObj,
         });
         console.log(`📧 COD Order Confirmation email sent to ${userEmail} for Order #${orderId}`);
       } catch (emailErr) {
@@ -273,6 +339,7 @@ export const placeOrder = async (req, res) => {
     return res.status(201).json({
       success: true,
       orderId,
+      totalAmount: validatedTotal,
     });
   } catch (error) {
     console.error("🔥 ORDER ERROR:", error);

@@ -1,5 +1,5 @@
 // client/src/pages/Cart.jsx
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -13,15 +13,12 @@ const Cart = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
-    // Calculate totals
+    // Calculate totals based on Business Rule: Subtotal >= ₹1,000 -> Free Shipping
     const subtotal = parseFloat(getTotal()) || 0; 
-    const shipping = 50.00; // Fixed shipping cost
+    const isFreeShipping = subtotal >= 1000;
+    const shipping = isFreeShipping ? 0 : 50.00; 
     const finalTotal = (subtotal + shipping).toFixed(2);
 
-    /**
-     * UPDATED: handleCheckout
-     * Redirects to the address step and passes order totals via router state.
-     */
     const handleCheckout = () => {
         if (!user) {
             // Redirect to login if not authenticated
@@ -45,11 +42,12 @@ const Cart = () => {
             <>
                 <Header />
                 <div className="cart-container">
-                    <h2 className="cart-title">Your Shopping Cart</h2>
+                    <h2 className="cart-title">Your Construction Cart</h2>
                     <div className="empty-cart-box">
-                        <p className="empty-cart">Your cart is empty. Time to start building!</p>
+                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🛒</div>
+                        <p className="empty-cart">Your cart is empty. Ready to build your project?</p>
                         <button className="shop-now-btn" onClick={() => navigate('/')}>
-                            Continue Shopping
+                            Explore Materials Marketplace
                         </button>
                     </div>
                 </div>
@@ -62,7 +60,7 @@ const Cart = () => {
         <>
             <Header />
             <div className="cart-container">
-                <h2 className="cart-title">Your Shopping Cart ({cartItems.length} items)</h2>
+                <h2 className="cart-title">Your Shopping Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})</h2>
                 
                 <div className="cart-content">
                     {/* LEFT COLUMN: List of Items */}
@@ -72,7 +70,7 @@ const Cart = () => {
                         ))}
                     </div>
 
-                    {/* RIGHT COLUMN: Summary Card */}
+                    {/* RIGHT COLUMN: Order Summary Card */}
                     <div className="cart-summary">
                         <h3>Order Summary</h3>
                         
@@ -82,20 +80,32 @@ const Cart = () => {
                         </div>
                         
                         <div className="summary-line">
-                            <span>Shipping:</span>
-                            <span>₹{shipping.toFixed(2)}</span>
+                            <span>Estimated Freight / Shipping:</span>
+                            <span style={{ color: isFreeShipping ? 'var(--color-success)' : 'inherit', fontWeight: isFreeShipping ? 700 : 'normal' }}>
+                                {isFreeShipping ? 'FREE' : `₹${shipping.toFixed(2)}`}
+                            </span>
                         </div>
+
+                        {isFreeShipping ? (
+                            <div style={{ fontSize: '0.82rem', color: 'var(--color-success)', marginTop: '-8px', marginBottom: '10px', fontWeight: 600 }}>
+                                ✓ Eligible for FREE Freight Shipping (Orders ≥ ₹1,000)
+                            </div>
+                        ) : (
+                            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '-8px', marginBottom: '10px' }}>
+                                Add ₹{(1000 - subtotal).toFixed(2)} more for FREE Freight Shipping!
+                            </div>
+                        )}
                         
                         <hr className="summary-divider" />
                         
-                        <div className="summary-line total-line" style={{ fontWeight: 'bold' }}>
-                            <span>Total:</span>
+                        <div className="summary-line total-line">
+                            <span>Total Amount:</span>
                             <span className="total-amount">₹{finalTotal}</span>
                         </div>
 
                         {!user && (
                             <p className="login-prompt">
-                                * Please log in to complete your order.
+                                🔒 Log in to continue to delivery address & checkout.
                             </p>
                         )}
                         

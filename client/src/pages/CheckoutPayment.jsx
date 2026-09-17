@@ -29,8 +29,11 @@ const CheckoutPayment = () => {
       <>
         <Header />
         <div className="page-container">
-          <div className="checkout-card">
-            <p>Invalid checkout session</p>
+          <div className="checkout-card" style={{ textAlign: 'center' }}>
+            <p style={{ color: 'var(--color-error)', fontWeight: 600 }}>Invalid checkout session.</p>
+            <button className="checkout-button" onClick={() => navigate('/cart')} style={{ marginTop: '1rem' }}>
+              Return to Cart
+            </button>
           </div>
         </div>
         <Footer />
@@ -148,7 +151,7 @@ const CheckoutPayment = () => {
           },
         });
       },
-      theme: { color: "#1c4fd8" },
+      theme: { color: "#f97316" },
     }).open();
   };
 
@@ -185,30 +188,58 @@ const CheckoutPayment = () => {
       <Header />
 
       <div className="page-container">
-        <div className="checkout-card">
-          <h2>Checkout Payment</h2>
+        {/* Step Indicator */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            1. Cart
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            2. Delivery Address
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-orange-primary)', color: '#fff', fontSize: '0.82rem', fontWeight: 700 }}>
+            3. Payment
+          </div>
+          <div style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'var(--color-bg-light)', color: 'var(--color-text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+            4. Confirmation
+          </div>
+        </div>
 
-          <div className="total-box">
-            Total Payable: ₹{state.total}
+        <div className="checkout-card">
+          <h2>💳 Payment Method</h2>
+          <p>Select your preferred payment gateway for order completion.</p>
+
+          <div style={{ background: 'var(--color-orange-light)', border: '1px solid var(--color-orange-border)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>Total Amount Payable:</span>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-orange-primary)' }}>₹{state.total}</div>
           </div>
 
-          <div className="payment-methods">
-            <label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', border: '1px solid var(--color-slate-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: paymentMethod === 'razorpay' ? 'rgba(249, 115, 22, 0.08)' : 'transparent', borderColor: paymentMethod === 'razorpay' ? 'var(--color-orange-primary)' : 'var(--color-slate-border)' }}>
               <input
                 type="radio"
+                name="payment"
                 checked={paymentMethod === "razorpay"}
                 onChange={() => setPaymentMethod("razorpay")}
+                style={{ accentColor: 'var(--color-orange-primary)', width: '18px', height: '18px' }}
               />
-              Pay Online (Razorpay)
+              <div>
+                <strong style={{ display: 'block', fontSize: '0.98rem' }}>Pay Online (Razorpay)</strong>
+                <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>UPI, Credit/Debit Card, Netbanking, Wallets</span>
+              </div>
             </label>
 
-            <label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', border: '1px solid var(--color-slate-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: paymentMethod === 'cod' ? 'rgba(249, 115, 22, 0.08)' : 'transparent', borderColor: paymentMethod === 'cod' ? 'var(--color-orange-primary)' : 'var(--color-slate-border)' }}>
               <input
                 type="radio"
+                name="payment"
                 checked={paymentMethod === "cod"}
                 onChange={() => setPaymentMethod("cod")}
+                style={{ accentColor: 'var(--color-orange-primary)', width: '18px', height: '18px' }}
               />
-              Cash on Delivery
+              <div>
+                <strong style={{ display: 'block', fontSize: '0.98rem' }}>Cash on Delivery (COD)</strong>
+                <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>Pay cash upon material arrival at delivery site</span>
+              </div>
             </label>
           </div>
 
@@ -217,7 +248,7 @@ const CheckoutPayment = () => {
             onClick={handlePay}
             disabled={loading}
           >
-            {loading ? "Processing..." : "Place Order"}
+            {loading ? "Processing Order..." : `Place Order (₹${state.total})`}
           </button>
         </div>
       </div>

@@ -1,229 +1,3 @@
-// // client/src/pages/HomePage.jsx
-// import React, { useState, useEffect } from 'react';
-// import axios from 'axios';
-// import Header from '../components/Header';
-// import Footer from '../components/Footer';
-// import ProductCard from '../components/ProductCard';
-// import CategoryNav from '../components/CategoryNav';
-
-// const HomePage = () => {
-//     // --- STATE ---
-//     const [allProducts, setAllProducts] = useState([]);
-//     const [filteredProducts, setFilteredProducts] = useState([]);
-//     const [categories, setCategories] = useState([]); // ✅ Added for hierarchy logic
-//     const [loading, setLoading] = useState(true);
-//     const [error, setError] = useState(null);
-//     const [selectedCategoryId, setSelectedCategoryId] = useState(null);
-//     const [searchTerm, setSearchTerm] = useState('');
-//     const [priceRange, setPriceRange] = useState([0, 100000]);
-
-//     const [stockFilter, setStockFilter] = useState({
-//         inStock: true,
-//         outOfStock: false,
-//         lowStock: false,
-//         bulkStock: false,
-//     });
-
-//     // --- HELPER FUNCTION ---
-//     // Recursively finds all IDs of a category and its subcategories
-//     const getAllCategoryIds = (parentId, categoryList) => {
-//         let ids = [parentId];
-//         categoryList.forEach(cat => {
-//             // Use == for loose equality in case one is a string and other is a number
-//             if (cat.parent_id == parentId) {
-//                 ids = ids.concat(getAllCategoryIds(cat.id, categoryList));
-//             }
-//         });
-//         return ids;
-//     };
-
-//     // --- DATA FETCHING ---
-//     useEffect(() => {
-//         const fetchData = async () => {
-//             try {
-//                 // Fetch Products and Categories in parallel
-//                 const [prodRes, catRes] = await Promise.all([
-//                     axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/products`),
-//                     axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/categories`)
-//                 ]);
-
-//                 setAllProducts(prodRes.data);
-//                 setCategories(catRes.data);
-//                 setLoading(false);
-//             } catch (err) {
-//                 console.error("Fetch Error:", err);
-//                 setError('Failed to fetch data. Please check the backend connection.');
-//                 setLoading(false);
-//             }
-//         };
-//         fetchData();
-//     }, []);
-
-//     // --- MAIN FILTERING LOGIC ---
-//     useEffect(() => {
-//         let currentProducts = [...allProducts];
-
-//         // 1. Category Filter (Parent + Children)
-//         if (selectedCategoryId !== null && categories.length > 0) {
-//             const validCategoryIds = getAllCategoryIds(Number(selectedCategoryId), categories);
-//             currentProducts = currentProducts.filter(p =>
-//                 validCategoryIds.includes(Number(p.category_id))
-//             );
-//         }
-
-//         // 2. Search Filter
-//         if (searchTerm.trim() !== '') {
-//             const lowerCaseSearch = searchTerm.toLowerCase().trim();
-//             currentProducts = currentProducts.filter(p =>
-//                 p.name.toLowerCase().includes(lowerCaseSearch) ||
-//                 p.description.toLowerCase().includes(lowerCaseSearch)
-//             );
-//         }
-
-//         // 3. Price Filter
-//         currentProducts = currentProducts.filter(
-//             p => p.price >= priceRange[0] && p.price <= priceRange[1]
-//         );
-
-//         // 4. Stock-based filtering
-//         currentProducts = currentProducts.filter((p) => {
-//             const qty = p.stock_quantity;
-//             if (stockFilter.inStock && qty <= 0) return false;
-//             if (stockFilter.outOfStock && qty > 0) return false;
-//             if (stockFilter.lowStock && qty >= 50) return false;
-//             if (stockFilter.bulkStock && qty < 500) return false;
-//             return true;
-//         });
-
-//         setFilteredProducts(currentProducts);
-//     }, [selectedCategoryId, searchTerm, priceRange, stockFilter, allProducts, categories]);
-
-//     const handleSearchChange = (e) => {
-//         setSearchTerm(e.target.value);
-//     };
-
-//     if (loading) return (
-//         <>
-//             <Header />
-//             <p className="loading" style={{ textAlign: 'center', marginTop: '40px' }}>Loading products...</p>
-//             <Footer />
-//         </>
-//     );
-
-//     if (error) return (
-//         <>
-//             <Header />
-//             <div style={{ textAlign: 'center', margin: '40px' }}>
-//                 <p className="error-message">{error}</p>
-//                 <button onClick={() => window.location.reload()}>Retry</button>
-//             </div>
-//             <Footer />
-//         </>
-//     );
-
-//     return (
-//         <>
-//             <Header />
-
-//             <section className="hero-banner">
-//                 <div className="hero-content">
-//                     <h1>Build Strong. Build Smart.</h1>
-//                     <p>Premium construction materials for modern projects</p>
-//                     <button className="hero-btn">Explore Materials</button>
-//                 </div>
-//             </section>
-
-//             <div className="homepage-main-layout">
-//                 <aside className="sidebar">
-//                     {/* Ensure CategoryNav uses setSelectedCategoryId correctly */}
-//                     <CategoryNav onCategorySelect={setSelectedCategoryId} />
-
-//                     <div className="price-range-block">
-//                         <h4>Price Range (₹)</h4>
-//                         <input
-//                             type="range"
-//                             min="0"
-//                             max="100000"
-//                             step="500"
-//                             value={priceRange[1]}
-//                             onChange={(e) => setPriceRange([0, Number(e.target.value)])}
-//                         />
-//                         <div className="price-values">
-//                             ₹0 – ₹{priceRange[1].toLocaleString()}
-//                         </div>
-//                     </div>
-
-//                     <div className="stock-filter">
-//                         <h4>Availability</h4>
-//                         <label>
-//                             <input
-//                                 type="checkbox"
-//                                 checked={stockFilter.inStock}
-//                                 onChange={() => setStockFilter({ ...stockFilter, inStock: !stockFilter.inStock })}
-//                             />
-//                             In Stock
-//                         </label>
-
-//                         <label>
-//                             <input
-//                                 type="checkbox"
-//                                 checked={stockFilter.outOfStock}
-//                                 onChange={() => setStockFilter({ ...stockFilter, outOfStock: !stockFilter.outOfStock })}
-//                             />
-//                             Out of Stock
-//                         </label>
-
-//                         <h4 style={{ marginTop: "15px" }}>Stock Level</h4>
-//                         <label>
-//                             <input
-//                                 type="checkbox"
-//                                 checked={stockFilter.lowStock}
-//                                 onChange={() => setStockFilter({ ...stockFilter, lowStock: !stockFilter.lowStock })}
-//                             />
-//                             Low Stock (&lt; 50)
-//                         </label>
-
-//                         <label>
-//                             <input
-//                                 type="checkbox"
-//                                 checked={stockFilter.bulkStock}
-//                                 onChange={() => setStockFilter({ ...stockFilter, bulkStock: !stockFilter.bulkStock })}
-//                             />
-//                             Bulk Available (≥ 500)
-//                         </label>
-//                     </div>
-//                 </aside>
-
-//                 <main className="product-display">
-//                     <div className="product-search-area">
-//                         <input
-//                             type="text"
-//                             placeholder="Search by name or description..."
-//                             value={searchTerm}
-//                             onChange={handleSearchChange}
-//                             className="search-input-field"
-//                         />
-//                     </div>
-
-//                     <div className="product-grid">
-//                         {filteredProducts.map((product) => (
-//                             <ProductCard key={product.id} product={product} />
-//                         ))}
-//                         {filteredProducts.length === 0 && (
-//                             <p style={{ marginTop: '20px', color: '#666' }}>
-//                                 No products found matching your criteria.
-//                             </p>
-//                         )}
-//                     </div>
-//                 </main>
-//             </div>
-//             <Footer />
-//         </>
-//     );
-// };
-
-// export default HomePage;
-
 // client/src/pages/HomePage.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -251,7 +25,6 @@ const HomePage = () => {
     });
 
     // --- HELPER FUNCTION: RECURSIVE CATEGORY LOOKUP ---
-    // Finds the clicked ID + all its child sub-category IDs
     const getAllCategoryIds = (parentId, categoryList) => {
         let ids = [Number(parentId)];
         categoryList.forEach(cat => {
@@ -266,7 +39,6 @@ const HomePage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch products and categories in parallel
                 const [prodRes, catRes] = await Promise.all([
                     axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/products`),
                     axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/categories`)
@@ -332,7 +104,10 @@ const HomePage = () => {
     if (loading) return (
         <>
             <Header />
-            <p style={{textAlign: 'center', marginTop: '40px'}}>Loading products...</p>
+            <div style={{ padding: '6rem 2rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🏗️</div>
+                <p style={{ fontSize: '1.2rem', color: 'var(--color-text-muted)' }}>Loading construction materials catalog...</p>
+            </div>
             <Footer />
         </>
     );
@@ -341,10 +116,10 @@ const HomePage = () => {
         <>
             <Header />
             <div style={{ textAlign: 'center', margin: '60px 20px' }}>
-                <p className="error-message" style={{ color: '#d9534f', fontSize: '1.2rem', marginBottom: '20px' }}>{error}</p>
+                <p className="error-message">{error}</p>
                 <button 
                   onClick={() => window.location.reload()}
-                  style={{ padding: '10px 24px', backgroundColor: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  style={{ padding: '10px 24px', backgroundColor: 'var(--color-orange-primary)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
                   Retry Connection
                 </button>
@@ -357,22 +132,96 @@ const HomePage = () => {
         <>
             <Header />
             
+            {/* HERO BANNER SECTION */}
             <section className="hero-banner">
-                <div className="hero-content">
-                    <h1>Build Strong. Build Smart.</h1>
-                    <p>Premium construction materials for modern projects</p>
+                <div className="hero-content-wrapper">
+                    <div className="hero-main-text">
+                        <h1>
+                            Build Your Vision With <span className="hero-highlight">Aditya Enterprises</span>
+                        </h1>
+                        <p className="hero-subtitle">
+                            Your trusted partner for high-grade raw construction materials. From structural steel to OPC cement and building blocks, we supply quality materials for every project.
+                        </p>
+                        
+                        <div className="hero-trust-row">
+                            <div className="hero-trust-item">
+                                <span className="trust-icon">✓</span> Genuine Materials
+                            </div>
+                            <div className="hero-trust-item">
+                                <span className="trust-icon">✓</span> Bulk Availability
+                            </div>
+                            <div className="hero-trust-item">
+                                <span className="trust-icon">✓</span> Reliable Supply
+                            </div>
+                            <div className="hero-trust-item">
+                                <span className="trust-icon">✓</span> Direct Delivery
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="hero-card-side">
+                        <h3>🏗️ Structural Excellence</h3>
+                        <p>Supplying contractors, engineers, and builders with certified materials.</p>
+                        <div className="hero-mini-stats">
+                            <div className="stat-box">
+                                <div className="stat-num">100%</div>
+                                <div className="stat-label">Verified Quality</div>
+                            </div>
+                            <div className="stat-box">
+                                <div className="stat-num">Fast</div>
+                                <div className="stat-label">Site Delivery</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
+            {/* BUSINESS BENEFIT CARDS */}
+            <section className="benefit-section">
+                <div className="benefit-grid">
+                    <div className="benefit-card">
+                        <div className="benefit-icon-box">🚚</div>
+                        <div>
+                            <h4>Bulk Orders</h4>
+                            <p>Special pricing & quantity supply for large construction sites.</p>
+                        </div>
+                    </div>
+
+                    <div className="benefit-card">
+                        <div className="benefit-icon-box">🛡️</div>
+                        <div>
+                            <h4>Quality Assurance</h4>
+                            <p>Certified steel rebars, OPC cement, and structural blocks.</p>
+                        </div>
+                    </div>
+
+                    <div className="benefit-card">
+                        <div className="benefit-icon-box">👷</div>
+                        <div>
+                            <h4>Builder Supply</h4>
+                            <p>Reliable recurring material supply for active contractors.</p>
+                        </div>
+                    </div>
+
+                    <div className="benefit-card">
+                        <div className="benefit-icon-box">☎️</div>
+                        <div>
+                            <h4>Customer Support</h4>
+                            <p>Dedicated order assistance and site delivery tracking.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* MAIN MARKETPLACE LAYOUT */}
             <div className="homepage-main-layout"> 
                 <aside className="sidebar">
-                    {/* RESET BUTTON: Essential for clearing filters */}
                     <button 
                         onClick={() => setSelectedCategoryId(null)}
                         className="clear-filter-btn"
                         style={{ width: '100%', marginBottom: '20px', cursor: 'pointer' }}
                     >
-                        SHOW ALL PRODUCTS
+                        Reset / All Materials
                     </button>
 
                     <CategoryNav onCategorySelect={setSelectedCategoryId} />
@@ -397,7 +246,7 @@ const HomePage = () => {
                     <div className="product-search-area">
                         <input
                             type="text"
-                            placeholder="Search materials..."
+                            placeholder="Search cement, bricks, TMT steel, pipes, materials..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input-field" 
@@ -409,14 +258,52 @@ const HomePage = () => {
                             <ProductCard key={product.id} product={product} />
                         ))}
                         {filteredProducts.length === 0 && (
-                            <div style={{ textAlign: 'center', marginTop: '40px' }}>
-                                <p>No products found for this category.</p>
-                                <button onClick={() => setSelectedCategoryId(null)}>Clear Filter</button>
+                            <div style={{ textAlign: 'center', marginTop: '40px', gridColumn: '1 / -1', padding: '3rem', background: 'var(--color-bg-card)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-slate-border)' }}>
+                                <p style={{ fontSize: '1.1rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+                                    No construction materials found matching your criteria.
+                                </p>
+                                <button 
+                                  onClick={() => setSelectedCategoryId(null)}
+                                  style={{ padding: '10px 20px', background: 'var(--color-orange-primary)', color: '#fff', borderRadius: 'var(--radius-md)', fontWeight: 'bold' }}
+                                >
+                                  Clear Filters
+                                </button>
                             </div>
                         )}
                     </div>
                 </main>
             </div>
+
+            {/* DARK TRUST SECTION */}
+            <section className="trust-section">
+                <div className="trust-container">
+                    <h2>Why Choose Aditya Enterprises?</h2>
+                    <p className="trust-subtitle">
+                        From foundation to finish, we supply verified materials built to withstand heavy structural demands.
+                    </p>
+
+                    <div className="trust-grid">
+                        <div className="trust-card">
+                            <div className="trust-icon-large">🧱</div>
+                            <h3>Premium Materials</h3>
+                            <p>High grade cement, steel, and blocks directly from trusted manufacturers.</p>
+                        </div>
+
+                        <div className="trust-card">
+                            <div className="trust-icon-large">📦</div>
+                            <h3>Bulk Availability</h3>
+                            <p>High volume stock ready for immediate site dispatches.</p>
+                        </div>
+
+                        <div className="trust-card">
+                            <div className="trust-icon-large">💳</div>
+                            <h3>Secure Checkout</h3>
+                            <p>Integrated Razorpay payments and transparent billing.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <Footer />
         </>
     );

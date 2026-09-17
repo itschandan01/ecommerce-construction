@@ -3,31 +3,50 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
-    // You should add styling for the 'footer' class to App.css
     return (
         <footer className="footer">
-            <div className="footer-content">
-                <div className="footer-section about">
-                    <h3>AdityaEnterprises</h3>
-                    <p>Your reliable source for high-quality construction materials. Building the future, one material at a time.</p>
+            <div className="footer-container">
+                <div className="footer-brand">
+                    <h3>🏗️ Aditya Enterprises</h3>
+                    <p>Build Today. Better Tomorrow.</p>
+                    <p style={{ fontSize: '0.88rem' }}>
+                        Your trusted supplier of premium raw construction materials, structural steel, OPC cement, and building supplies.
+                    </p>
                 </div>
-                <div className="footer-section links">
-                    <h3>Quick Links</h3>
+
+                <div className="footer-col">
+                    <h4>Quick Links</h4>
                     <ul>
-                        <li><Link to="/">Home</Link></li>
-                        {/* You would add an Inquiry/Contact page here */}
-                        <li><Link to="/inquiry">Contact/Inquiry</Link></li> 
-                        <li><Link to="/terms">Terms of Service</Link></li>
+                        <li><Link to="/">Home Marketplace</Link></li>
+                        <li><Link to="/cart">Shopping Cart</Link></li>
+                        <li><Link to="/login">Customer Login</Link></li>
+                        <li><Link to="/register">Create Account</Link></li>
                     </ul>
                 </div>
-                <div className="footer-section contact">
-                    <h3>Contact Us</h3>
-                    <p>Email: adityaenterprisesofficial62@gmail.com</p>
-                    <p>Phone: +91 7667489264</p>
+
+                <div className="footer-col">
+                    <h4>Materials</h4>
+                    <ul>
+                        <li><span>Cement & Concrete</span></li>
+                        <li><span>TMT Steel & Rebars</span></li>
+                        <li><span>AAC Blocks & Bricks</span></li>
+                        <li><span>Plumbing & Electrical</span></li>
+                    </ul>
+                </div>
+
+                <div className="footer-col">
+                    <h4>Contact Support</h4>
+                    <ul>
+                        <li><span>Email: adityaenterprisesofficial62@gmail.com</span></li>
+                        <li><span>Phone: +91 7667489264</span></li>
+                        <li><span>Location: Bihar • Uttar Pradesh • Jharkhand</span></li>
+                    </ul>
                 </div>
             </div>
+
             <div className="footer-bottom">
-                &copy; {new Date().getFullYear()}AdityaEnterprises E-commerce. All rights reserved.
+                <div>&copy; {new Date().getFullYear()} Aditya Enterprises E-Commerce. All rights reserved.</div>
+                <div>Premium Construction Materials Marketplace</div>
             </div>
         </footer>
     );
